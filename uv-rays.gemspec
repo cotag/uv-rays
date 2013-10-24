@@ -13,9 +13,11 @@ Gem::Specification.new do |gem|
     gem.required_ruby_version = '>= 1.9.2'
     gem.require_paths = ["lib"]
 
-    gem.add_runtime_dependency     'thread_safe'
-    gem.add_runtime_dependency     'dnsruby', '~> 1.54'
+    gem.add_runtime_dependency     'libuv'
+    gem.add_runtime_dependency     'bisect'
+    gem.add_runtime_dependency     'tzinfo'
     gem.add_runtime_dependency     'ipaddress'
+
     gem.add_development_dependency 'rspec', '>= 2.14'
     gem.add_development_dependency 'rake', '>= 10.1'
     gem.add_development_dependency 'yard'

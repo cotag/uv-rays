@@ -3,6 +3,7 @@ require 'uv-rays/buffered_tokenizer'
 require 'uv-rays/abstract_tokenizer'
 require 'uv-rays/connection'
 require 'uv-rays/tcp_server'
+require 'uv-rays/scheduler'
 
 
 module UvRays
