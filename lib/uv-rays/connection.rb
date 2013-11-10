@@ -9,8 +9,9 @@ module UvRays
 
         if IPAddress.valid? server
             tcp.connect server, port do
-                tcp.start_read
+                tcp.enable_nodelay
                 handler.on_connect(tcp)
+                tcp.start_read
             end
         else
             # TODO:: Async DNS resolution

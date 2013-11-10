@@ -1,5 +1,4 @@
 require 'ipaddress'
-require 'dnsruby'
 
 
 module UvRays
@@ -12,8 +11,10 @@ module UvRays
             @accept_method = method(:client_accepted)
 
             if server == port && port.is_a?(Fixnum)
+                # We are opening a socket descriptor
                 open(server)
             else
+                # Perform basic checks before attempting to bind address
                 server = '127.0.0.1' if server == 'localhost'
                 if IPAddress.valid? server
                     @server = server
@@ -34,9 +35,15 @@ module UvRays
         end
 
         def client_accepted(client)
+            # prevent buffering
+            client.enable_nodelay
+
+            # create the connection class
             c = @klass.new(client)
             c.post_init *@args
-            client.start_read       # Socket not paused
+
+            # start read after post init and call connected
+            client.start_read
             c.on_connect(client)
         end
     end

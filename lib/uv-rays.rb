@@ -1,9 +1,23 @@
 require 'libuv'
+require 'uv-rays/scheduler'
+
+# Intelligent stream buffering
 require 'uv-rays/buffered_tokenizer'
 require 'uv-rays/abstract_tokenizer'
-require 'uv-rays/connection'
+
+# TCP Connections
 require 'uv-rays/tcp_server'
-require 'uv-rays/scheduler'
+require 'uv-rays/connection'
+
+# HTTP related methods
+require 'cookiejar'
+require 'http-parser'
+require 'addressable/uri'
+require 'uv-rays/http/encoding'
+require 'uv-rays/http/request'
+require 'uv-rays/http/response'
+require 'uv-rays/http_endpoint'
+
 
 
 module UvRays
@@ -35,6 +49,14 @@ module UvRays
 
     def self.connect(server, port, handler, *args)
         klass = klass_from_handler(OutboundConnection, handler, *args)
+
+        c = klass.new server, port
+        c.post_init *args
+        c
+    end
+
+    def self.http_connect(server, port, handler, *args)
+        klass = klass_from_handler(HttpConnection, handler, *args)
 
         c = klass.new server, port
         c.post_init *args

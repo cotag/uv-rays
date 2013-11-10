@@ -17,12 +17,13 @@ Gem::Specification.new do |gem|
     gem.add_runtime_dependency     'bisect'
     gem.add_runtime_dependency     'tzinfo'
     gem.add_runtime_dependency     'ipaddress'
+    gem.add_runtime_dependency     'addressable'
 
     gem.add_development_dependency 'rspec', '>= 2.14'
     gem.add_development_dependency 'rake', '>= 10.1'
     gem.add_development_dependency 'yard'
 
-    s.files = Dir["{lib}/**/*"] + %w(Rakefile uv-rays.gemspec README.md LICENSE)
-    s.test_files = Dir["spec/**/*"]
-    s.extra_rdoc_files = ["README.md"]
+    gem.files = Dir["{lib}/**/*"] + %w(Rakefile uv-rays.gemspec README.md LICENSE)
+    gem.test_files = Dir["spec/**/*"]
+    gem.extra_rdoc_files = ["README.md"]
 end
