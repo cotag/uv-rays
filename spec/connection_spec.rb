@@ -26,11 +26,17 @@ module TestConnect
 end
 
 module TestServer
+	def post_init *args
+		if args[0] == :use_tls
+			use_tls
+		end
+	end
+
 	def on_connect(conection)
 		write('hello')
 	end
 
-	def on_read(data, ip, port, conection)
+	def on_read(*args) #data, ip, port, conection)
 		#p "was sent #{data} from port #{port}"
 		#send_datagram(data, ip, port)
 		@loop.stop
@@ -71,6 +77,30 @@ describe UvRays::Connection do
 
 				UV.start_server '127.0.0.1', 3210, TestServer
 				@klass = UV.connect '127.0.0.1', 3210, TestConnect
+			}
+
+			@general_failure.should == []
+			res = @klass.check
+			res[0].should == true
+			res[1].should == true
+			res[2].should == 'hello'
+		end
+	end
+
+	describe 'basic tcp client server with tls' do
+		it "should send some data and shutdown the socket", :network => true do
+			@loop.run { |logger|
+				logger.progress do |level, errorid, error|
+					begin
+						@general_failure << "Log called: #{level}: #{errorid}\n#{error.message}\n#{error.backtrace.join("\n")}\n"
+					rescue Exception
+						@general_failure << 'error in logger'
+					end
+				end
+
+				UV.start_server '127.0.0.1', 3212, TestServer, :use_tls
+				@klass = UV.connect '127.0.0.1', 3212, TestConnect
+				@klass.use_tls
 			}
 
 			@general_failure.should == []

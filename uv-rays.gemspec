@@ -16,8 +16,10 @@ Gem::Specification.new do |gem|
     gem.add_runtime_dependency     'libuv'
     gem.add_runtime_dependency     'bisect'
     gem.add_runtime_dependency     'tzinfo'
+    gem.add_runtime_dependency     'cookiejar'
     gem.add_runtime_dependency     'ipaddress'
     gem.add_runtime_dependency     'addressable'
+    gem.add_runtime_dependency     'http-parser'
 
     gem.add_development_dependency 'rspec', '>= 2.14'
     gem.add_development_dependency 'rake', '>= 10.1'

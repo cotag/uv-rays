@@ -1,5 +1,3 @@
-require 'ipaddress'
-
 
 module UvRays
     class TcpServer < ::Libuv::TCP

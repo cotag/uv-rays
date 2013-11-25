@@ -1,29 +1,39 @@
-require 'ipaddress'
-require 'dnsruby'
-
 
 module UvRays
     def self.try_connect(tcp, handler, server, port)
-        tcp.finally handler.method(:on_close)
-        tcp.progress handler.method(:on_read)
-
         if IPAddress.valid? server
+            tcp.finally handler.method(:on_close)
+            tcp.progress handler.method(:on_read)
             tcp.connect server, port do
                 tcp.enable_nodelay
+                tcp.start_tls(handler.using_tls) unless handler.using_tls == false
+
+                # on_connect could call use_tls so must come after start_tls
                 handler.on_connect(tcp)
                 tcp.start_read
             end
         else
-            # TODO:: Async DNS resolution
+            tcp.loop.lookup(server).then(
+                proc { |result|
+                    UvRays.try_connect(tcp, handler, result[0][0], port)
+                },
+                proc { |failure|
+                    # TODO:: Log error on loop
+                    handler.on_close
+                }
+            )
         end
     end
 
 
     # @abstract
     class Connection
+        attr_reader :using_tls
+
         def initialize
             @send_queue = []
             @paused = false
+            @using_tls = false
         end
 
         def pause
@@ -79,9 +89,20 @@ module UvRays
         def initialize(tcp)
             super()
 
+            @loop = tcp.loop
             @transport = tcp
             @transport.finally method(:on_close)
             @transport.progress method(:on_read)
+        end
+
+        def use_tls(args = {})
+            args[:server] = true
+
+            if @transport.connected
+                @transport.start_tls(args)
+            else
+                @using_tls = args
+            end
         end
     end
 
@@ -96,6 +117,16 @@ module UvRays
             @transport = @loop.tcp
 
             ::UvRays.try_connect(@transport, self, @server, @port)
+        end
+
+        def use_tls(args = {})
+            args.delete(:server)
+
+            if @transport.connected
+                @transport.start_tls(args)
+            else
+                @using_tls = args
+            end
         end
 
         def reconnect(server = nil, port = nil)
@@ -133,7 +164,11 @@ module UvRays
             if IPAddress.valid? recipient_address
                 @transport.send recipient_address, recipient_port, data
             else
-                # TODO:: Async DNS resolution
+                # Async DNS resolution
+                # Note:: send here will chain the promise
+                tcp.loop.lookup(server).then do |result|
+                    @transport.send result[0][0], recipient_port, data
+                end
             end
         end
     end

@@ -44,14 +44,16 @@ module UvRays
             :keepalive => true
         }
 
-        attr_reader :host, :port, :tls, :loop, :cookiejar
+        attr_reader :host, :port, :using_tls, :loop, :cookiejar
         attr_reader :connect_timeout, :inactivity_timeout
 
         def initialize(uri, options = {})
             @connect_timeout     = options[:connect_timeout] ||= 5        # default connection setup timeout
             @inactivity_timeout  = options[:inactivity_timeout] ||= 10   # default connection inactivity (post-setup) timeout
 
-            @tls = options[:tls] || options[:ssl] || {}
+
+            @using_tls = options[:tls] || options[:ssl] || false
+            @using_tls.delete(:server) unless @using_tls == false
 
             uri = uri.kind_of?(Addressable::URI) ? uri : Addressable::URI::parse(uri.to_s)
             @https = uri.scheme == "https"

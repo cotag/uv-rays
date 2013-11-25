@@ -1,15 +1,9 @@
-require 'bisect'
-require 'tzinfo'
-require 'libuv'
-require 'set'
-
-require 'uv-rays/scheduler/cron'
-require 'uv-rays/scheduler/time'
-
 
 module UvRays
 
     class ScheduledEvent < ::Libuv::Q::DeferredPromise
+        include Comparable
+
         attr_reader :created
         attr_reader :last_scheduled
         attr_reader :next_scheduled
@@ -28,6 +22,11 @@ module UvRays
 
             # init the promise
             super(loop, defer)
+        end
+
+        # required for comparable
+        def <=>(anOther)
+            @next_scheduled <=> anOther.next_scheduled
         end
 
         # reject the promise
@@ -143,14 +142,6 @@ module UvRays
         attr_reader :time_diff
 
 
-        # Used for efficient event ordering
-        def self.compare(event1, event2)
-            event1.next_scheduled < event2.next_scheduled
-        end
-        COMPARE = method(:compare)
-
-
-
         def initialize(loop)
             @loop = loop
             @schedules = Set.new
@@ -249,7 +240,7 @@ module UvRays
             end
 
             # optimal algorithm for inserting into an already sorted list
-            Bisect.insort(@scheduled, event, &COMPARE)
+            Bisect.insort(@scheduled, event)
 
             # Update the timer
             check_timer

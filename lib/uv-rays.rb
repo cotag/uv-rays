@@ -1,4 +1,12 @@
 require 'libuv'
+
+
+# In-memory event scheduling
+require 'set'               # ruby std lib
+require 'bisect'            # insert into a sorted array
+require 'tzinfo'            # timezone information
+require 'uv-rays/scheduler/cron'
+require 'uv-rays/scheduler/time'
 require 'uv-rays/scheduler'
 
 # Intelligent stream buffering
@@ -6,13 +14,14 @@ require 'uv-rays/buffered_tokenizer'
 require 'uv-rays/abstract_tokenizer'
 
 # TCP Connections
+require 'ipaddress'         # IP Address parser
 require 'uv-rays/tcp_server'
 require 'uv-rays/connection'
 
 # HTTP related methods
-require 'cookiejar'
-require 'http-parser'
-require 'addressable/uri'
+require 'cookiejar'         # Manages cookies
+require 'http-parser'       # Parses HTTP request / responses
+require 'addressable/uri'   # URI parser
 require 'uv-rays/http/encoding'
 require 'uv-rays/http/request'
 require 'uv-rays/http/response'
@@ -49,14 +58,6 @@ module UvRays
 
     def self.connect(server, port, handler, *args)
         klass = klass_from_handler(OutboundConnection, handler, *args)
-
-        c = klass.new server, port
-        c.post_init *args
-        c
-    end
-
-    def self.http_connect(server, port, handler, *args)
-        klass = klass_from_handler(HttpConnection, handler, *args)
 
         c = klass.new server, port
         c.post_init *args
