@@ -75,7 +75,14 @@ module UvRays
             end
         end
 
-        def stream_file(filename)
+        def stream_file(filename, type = :raw)
+            file = @loop.file(filename, File::RDONLY)
+            file.progress do    # File is open and available for reading
+                file.send_file(@transport, type).finally do
+                    file.close
+                end
+            end
+            return file
         end
 
         def on_connect(transport) # user to define
