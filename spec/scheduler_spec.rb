@@ -29,10 +29,10 @@ describe UvRays::Scheduler do
             end
         }
 
-        @general_failure.should == []
-        @event.should == @result
+        expect(@general_failure).to eq([])
+        expect(@event).to eq(@result)
         @diff = @triggered_at - @event.last_scheduled
-        (@diff >= 500 && @diff < 750).should == true
+        expect((@diff >= 500 && @diff < 750)).to eq(true)
     end
 
     it "should be able to schedule a one shot event using 'at'" do
@@ -52,10 +52,10 @@ describe UvRays::Scheduler do
             end
         }
 
-        @general_failure.should == []
-        @event.should == @result
+        expect(@general_failure).to eq([])
+        expect(@event).to eq(@result)
         @diff = @triggered_at - @event.last_scheduled
-        (@diff >= 1000 && @diff < 1250).should == true
+        expect((@diff >= 1000 && @diff < 1250)).to eq(true)
     end
 
     it "should be able to schedule a repeat event" do
@@ -81,10 +81,10 @@ describe UvRays::Scheduler do
             end
         }
 
-        @general_failure.should == []
-        @run.should == 2
-        @event.should == @result
+        expect(@general_failure).to eq([])
+        expect(@run).to eq(2)
+        expect(@event).to eq(@result)
         @diff = @triggered_at - @event.last_scheduled
-        (@diff >= 250 && @diff < 500).should == true
+        expect((@diff >= 250 && @diff < 500)).to eq(true)
     end
 end

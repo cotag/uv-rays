@@ -17,54 +17,54 @@ describe UvRays::Scheduler do
 
         it 'parses duration strings' do
 
-            pd('-1.0d1.0w1.0d').should == -777600000
-            pd('-1d1w1d').should == -777600000
-            pd('-1w2d').should == -777600000
-            pd('-1h10s').should == -3610000
-            pd('-1h').should == -3600000
-            pd('-5.').should == -5
-            pd('-2.5s').should == -2500
-            pd('-1s').should == -1000
-            pd('-500').should == -500
-            pd('').should == 0
-            pd('5.0').should == 5
-            pd('0.5').should == 0
-            pd('.5').should == 0
-            pd('5.').should == 5
-            pd('500').should == 500
-            pd('1000').should == 1000
-            pd('1').should == 1
-            pd('1s').should == 1000
-            pd('2.5s').should == 2500
-            pd('1h').should == 3600000
-            pd('1h10s').should == 3610000
-            pd('1w2d').should == 777600000
-            pd('1d1w1d').should == 777600000
-            pd('1.0d1.0w1.0d').should == 777600000
+            expect(pd('-1.0d1.0w1.0d')).to eq(-777600000)
+            expect(pd('-1d1w1d')).to eq(-777600000)
+            expect(pd('-1w2d')).to eq(-777600000)
+            expect(pd('-1h10s')).to eq(-3610000)
+            expect(pd('-1h')).to eq(-3600000)
+            expect(pd('-5.')).to eq(-5)
+            expect(pd('-2.5s')).to eq(-2500)
+            expect(pd('-1s')).to eq(-1000)
+            expect(pd('-500')).to eq(-500)
+            expect(pd('')).to eq(0)
+            expect(pd('5.0')).to eq(5)
+            expect(pd('0.5')).to eq(0)
+            expect(pd('.5')).to eq(0)
+            expect(pd('5.')).to eq(5)
+            expect(pd('500')).to eq(500)
+            expect(pd('1000')).to eq(1000)
+            expect(pd('1')).to eq(1)
+            expect(pd('1s')).to eq(1000)
+            expect(pd('2.5s')).to eq(2500)
+            expect(pd('1h')).to eq(3600000)
+            expect(pd('1h10s')).to eq(3610000)
+            expect(pd('1w2d')).to eq(777600000)
+            expect(pd('1d1w1d')).to eq(777600000)
+            expect(pd('1.0d1.0w1.0d')).to eq(777600000)
 
-            pd('.5m').should == 30000
-            pd('5.m').should == 300000
-            pd('1m.5s').should == 60500
-            pd('-.5m').should == -30000
+            expect(pd('.5m')).to eq(30000)
+            expect(pd('5.m')).to eq(300000)
+            expect(pd('1m.5s')).to eq(60500)
+            expect(pd('-.5m')).to eq(-30000)
 
-            pd('1').should == 1
-            pd('0.1').should == 0
-            pd('1s').should == 1000
+            expect(pd('1')).to eq(1)
+            expect(pd('0.1')).to eq(0)
+            expect(pd('1s')).to eq(1000)
         end
 
         it 'calls #to_s on its input' do
 
-            pd(1).should == 1
+            expect(pd(1)).to eq(1)
         end
 
         it 'raises on wrong duration strings' do
 
-            lambda { pd('-') }.should raise_error(ArgumentError)
-            lambda { pd('h') }.should raise_error(ArgumentError)
-            lambda { pd('whatever') }.should raise_error(ArgumentError)
-            lambda { pd('hms') }.should raise_error(ArgumentError)
+            expect  { pd('-') }.to raise_error(ArgumentError)
+            expect  { pd('h') }.to raise_error(ArgumentError)
+            expect  { pd('whatever') }.to raise_error(ArgumentError)
+            expect  { pd('hms') }.to raise_error(ArgumentError)
 
-            lambda { pd(' 1h ') }.should raise_error(ArgumentError)
+            expect  { pd(' 1h ') }.to raise_error(ArgumentError)
         end
     end
 
@@ -76,32 +76,32 @@ describe UvRays::Scheduler do
 
         it 'turns integers into duration strings' do
 
-            td(0).should == '0s'
-            td(60000).should == '1m'
-            td(61000).should == '1m1s'
-            td(3661000).should == '1h1m1s'
-            td(24 * 3600 * 1000).should == '1d'
-            td(7 * 24 * 3600 * 1000 + 1000).should == '1w1s'
-            td(30 * 24 * 3600 * 1000 + 1000).should == '4w2d1s'
+            expect(td(0)).to eq('0s')
+            expect(td(60000)).to eq('1m')
+            expect(td(61000)).to eq('1m1s')
+            expect(td(3661000)).to eq('1h1m1s')
+            expect(td(24 * 3600 * 1000)).to eq('1d')
+            expect(td(7 * 24 * 3600 * 1000 + 1000)).to eq('1w1s')
+            expect(td(30 * 24 * 3600 * 1000 + 1000)).to eq('4w2d1s')
         end
 
         it 'ignores seconds and milliseconds if :drop_seconds => true' do
 
-            td(0, :drop_seconds => true).should == '0m'
-            td(5000, :drop_seconds => true).should == '0m'
-            td(61000, :drop_seconds => true).should == '1m'
+            expect(td(0, :drop_seconds => true)).to eq('0m')
+            expect(td(5000, :drop_seconds => true)).to eq('0m')
+            expect(td(61000, :drop_seconds => true)).to eq('1m')
         end
 
         it 'displays months if :months => true' do
 
-            td(1000, :months => true).should == '1s'
-            td(30 * 24 * 3600 * 1000 + 1000, :months => true).should == '1M1s'
+            expect(td(1000, :months => true)).to eq('1s')
+            expect(td(30 * 24 * 3600 * 1000 + 1000, :months => true)).to eq('1M1s')
         end
 
         it 'turns floats into duration strings' do
 
-            td(100).should == '100'
-            td(1100).should == '1s100'
+            expect(td(100)).to eq('100')
+            expect(td(1100)).to eq('1s100')
         end
     end
 
@@ -113,20 +113,20 @@ describe UvRays::Scheduler do
 
         it 'turns integers duration hashes' do
 
-            tdh(0).should == {}
-            tdh(60000).should == { :m => 1 }
+            expect(tdh(0)).to eq({})
+            expect(tdh(60000)).to eq({ :m => 1 })
         end
 
         it 'turns floats duration hashes' do
 
-            tdh(128).should == { :ms => 128 }
-            tdh(60127).should == { :m => 1, :ms => 127 }
+            expect(tdh(128)).to eq({ :ms => 128 })
+            expect(tdh(60127)).to eq({ :m => 1, :ms => 127 })
         end
 
         it 'drops seconds and milliseconds if :drop_seconds => true' do
 
-            tdh(61127).should == { :m => 1, :s => 1, :ms => 127 }
-            tdh(61127, :drop_seconds => true).should == { :m => 1 }
+            expect(tdh(61127)).to eq({ :m => 1, :s => 1, :ms => 127 })
+            expect(tdh(61127, :drop_seconds => true)).to eq({ :m => 1 })
         end
     end
 end

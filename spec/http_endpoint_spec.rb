@@ -78,12 +78,12 @@ describe UvRays::HttpEndpoint do
 				}, @request_failure)
 			}
 
-			@general_failure.should == []
-			@response[:headers][:"Content-type"].should == 'text/html'
-			@response[:headers].http_version.should == '1.1'
-			@response[:headers].status.should == 200
-			@response[:headers].cookies.should == {}
-			@response[:headers].keep_alive.should == true
+			expect(@general_failure).to eq([])
+			expect(@response[:headers][:"Content-type"]).to eq('text/html')
+			expect(@response[:headers].http_version).to eq('1.1')
+			expect(@response[:headers].status).to eq(200)
+			expect(@response[:headers].cookies).to eq({})
+			expect(@response[:headers].keep_alive).to eq(true)
 		end
 
 		it "should send multiple requests on the same connection", :network => true do
@@ -113,18 +113,18 @@ describe UvRays::HttpEndpoint do
 				}, @request_failure)
 			}
 
-			@general_failure.should == []
-			@response[:headers][:"Content-type"].should == 'text/html'
-			@response[:headers].http_version.should == '1.1'
-			@response[:headers].status.should == 200
-			@response[:headers].cookies.should == {}
-			@response[:headers].keep_alive.should == true
+			expect(@general_failure).to eq([])
+			expect(@response[:headers][:"Content-type"]).to eq('text/html')
+			expect(@response[:headers].http_version).to eq('1.1')
+			expect(@response[:headers].status).to eq(200)
+			expect(@response[:headers].cookies).to eq({})
+			expect(@response[:headers].keep_alive).to eq(true)
 
-			@response2[:headers][:"Content-type"].should == 'text/html'
-			@response2[:headers].http_version.should == '1.1'
-			@response2[:headers].status.should == 200
-			@response2[:headers].cookies.should == {}
-			@response2[:headers].keep_alive.should == true
+			expect(@response2[:headers][:"Content-type"]).to eq('text/html')
+			expect(@response2[:headers].http_version).to eq('1.1')
+			expect(@response2[:headers].status).to eq(200)
+			expect(@response2[:headers].cookies).to eq({})
+			expect(@response2[:headers].keep_alive).to eq(true)
 		end
 
 		it "should send pipelined requests on the same connection", :network => true do
@@ -154,18 +154,18 @@ describe UvRays::HttpEndpoint do
 				}, @request_failure)
 			}
 
-			@general_failure.should == []
-			@response[:headers][:"Content-type"].should == 'text/html'
-			@response[:headers].http_version.should == '1.1'
-			@response[:headers].status.should == 200
-			@response[:headers].cookies.should == {}
-			@response[:headers].keep_alive.should == true
+			expect(@general_failure).to eq([])
+			expect(@response[:headers][:"Content-type"]).to eq('text/html')
+			expect(@response[:headers].http_version).to eq('1.1')
+			expect(@response[:headers].status).to eq(200)
+			expect(@response[:headers].cookies).to eq({})
+			expect(@response[:headers].keep_alive).to eq(true)
 
-			@response2[:headers][:"Content-type"].should == 'text/html'
-			@response2[:headers].http_version.should == '1.1'
-			@response2[:headers].status.should == 200
-			@response2[:headers].cookies.should == {}
-			@response2[:headers].keep_alive.should == true
+			expect(@response2[:headers][:"Content-type"]).to eq('text/html')
+			expect(@response2[:headers].http_version).to eq('1.1')
+			expect(@response2[:headers].status).to eq(200)
+			expect(@response2[:headers].cookies).to eq({})
+			expect(@response2[:headers].keep_alive).to eq(true)
 		end
 	end
 
@@ -191,12 +191,12 @@ describe UvRays::HttpEndpoint do
 				}, @request_failure)
 			}
 
-			@general_failure.should == []
-			@response[:headers][:"Content-type"].should == 'text/html'
-			@response[:headers].http_version.should == '1.0'
-			@response[:headers].status.should == 200
-			@response[:headers].cookies.should == {}
-			@response[:headers].keep_alive.should == false
+			expect(@general_failure).to eq([])
+			expect(@response[:headers][:"Content-type"]).to eq('text/html')
+			expect(@response[:headers].http_version).to eq('1.0')
+			expect(@response[:headers].status).to eq(200)
+			expect(@response[:headers].cookies).to eq({})
+			expect(@response[:headers].keep_alive).to eq(false)
 		end
 
 		it "should send multiple requests", :network => true do
@@ -226,18 +226,18 @@ describe UvRays::HttpEndpoint do
 				}, @request_failure)
 			}
 
-			@general_failure.should == []
-			@response[:headers][:"Content-type"].should == 'text/html'
-			@response[:headers].http_version.should == '1.0'
-			@response[:headers].status.should == 200
-			@response[:headers].cookies.should == {}
-			@response[:headers].keep_alive.should == false
+			expect(@general_failure).to eq([])
+			expect(@response[:headers][:"Content-type"]).to eq('text/html')
+			expect(@response[:headers].http_version).to eq('1.0')
+			expect(@response[:headers].status).to eq(200)
+			expect(@response[:headers].cookies).to eq({})
+			expect(@response[:headers].keep_alive).to eq(false)
 
-			@response2[:headers][:"Content-type"].should == 'text/html'
-			@response2[:headers].http_version.should == '1.0'
-			@response2[:headers].status.should == 200
-			@response2[:headers].cookies.should == {}
-			@response2[:headers].keep_alive.should == false
+			expect(@response2[:headers][:"Content-type"]).to eq('text/html')
+			expect(@response2[:headers].http_version).to eq('1.0')
+			expect(@response2[:headers].status).to eq(200)
+			expect(@response2[:headers].cookies).to eq({})
+			expect(@response2[:headers].keep_alive).to eq(false)
 		end
 
 		it "should fail to send pipelined requests", :network => true do
@@ -267,12 +267,12 @@ describe UvRays::HttpEndpoint do
 				}, @request_failure)
 			}
 
-			@general_failure.should == [:disconnected]
-			@response[:headers][:"Content-type"].should == 'text/html'
-			@response[:headers].http_version.should == '1.0'
-			@response[:headers].status.should == 200
-			@response[:headers].cookies.should == {}
-			@response[:headers].keep_alive.should == false
+			expect(@general_failure).to eq([:disconnected])
+			expect(@response[:headers][:"Content-type"]).to eq('text/html')
+			expect(@response[:headers].http_version).to eq('1.0')
+			expect(@response[:headers].status).to eq(200)
+			expect(@response[:headers].cookies).to eq({})
+			expect(@response[:headers].keep_alive).to eq(false)
 			# Response 2 was the general failure
 		end
 	end

@@ -79,11 +79,11 @@ describe UvRays::Connection do
 				@klass = UV.connect '127.0.0.1', 3210, TestConnect
 			}
 
-			@general_failure.should == []
+			expect(@general_failure).to eq([])
 			res = @klass.check
-			res[0].should == true
-			res[1].should == true
-			res[2].should == 'hello'
+			expect(res[0]).to eq(true)
+			expect(res[1]).to eq(true)
+			expect(res[2]).to eq('hello')
 		end
 	end
 
@@ -103,11 +103,11 @@ describe UvRays::Connection do
 				@klass.use_tls
 			}
 
-			@general_failure.should == []
+			expect(@general_failure).to eq([])
 			res = @klass.check
-			res[0].should == true
-			res[1].should == true
-			res[2].should == 'hello'
+			expect(res[0]).to eq(true)
+			expect(res[1]).to eq(true)
+			expect(res[2]).to eq('hello')
 		end
 	end
 
@@ -127,11 +127,11 @@ describe UvRays::Connection do
 				@klass.send_datagram('hello', '127.0.0.1', 3210)
 			}
 
-			@general_failure.should == []
+			expect(@general_failure).to eq([])
 			res = @klass.check
-			res[0].should == nil
-			res[1].should == nil
-			res[2].should == nil #'hello' (libuv receive bug?)
+			expect(res[0]).to eq(nil)
+			expect(res[1]).to eq(nil)
+			expect(res[2]).to eq(nil) #'hello' (libuv receive bug?)
 		end
 	end
 end
