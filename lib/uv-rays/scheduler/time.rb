@@ -23,7 +23,7 @@
 #++
 
 
-module UvRays
+module UV
     class Scheduler
 
         def self.parse_in(o, quiet = false)

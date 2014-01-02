@@ -1,5 +1,5 @@
 
-module UvRays
+module UV
     class TcpServer < ::Libuv::TCP
         def initialize(loop, server, port, klass, *args)
             super(loop)

@@ -40,7 +40,7 @@ module OldServer
 end
 
 
-describe UvRays::HttpEndpoint do
+describe UV::HttpEndpoint do
 	before :each do
 		@loop = Libuv::Loop.new
 		@general_failure = []

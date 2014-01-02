@@ -1,10 +1,10 @@
 require 'uv-rays'
 
-describe UvRays::BufferedTokenizer do
+describe UV::BufferedTokenizer do
     describe 'delimiter' do
 
         before :each do
-            @buffer = UvRays::BufferedTokenizer.new({
+            @buffer = UV::BufferedTokenizer.new({
                 delimiter: "\n\r"
             })
         end
@@ -58,7 +58,7 @@ describe UvRays::BufferedTokenizer do
     describe 'delimiter' do
 
         before :each do
-            @buffer = UvRays::BufferedTokenizer.new({
+            @buffer = UV::BufferedTokenizer.new({
                 delimiter: "\n\r"
             })
         end
@@ -121,7 +121,7 @@ describe UvRays::BufferedTokenizer do
     describe 'indicator with delimiter' do
 
         before :each do
-            @buffer = UvRays::BufferedTokenizer.new({
+            @buffer = UV::BufferedTokenizer.new({
                 delimiter: "\n\r",
                 indicator: "GO"
             })
@@ -222,7 +222,7 @@ describe UvRays::BufferedTokenizer do
 
     describe 'buffer size limit with indicator' do
         before :each do
-            @buffer = UvRays::BufferedTokenizer.new({
+            @buffer = UV::BufferedTokenizer.new({
                 delimiter: "\n\r",
                 indicator: "Start",
                 size_limit: 10
@@ -238,7 +238,7 @@ describe UvRays::BufferedTokenizer do
 
     describe 'buffer size limit without indicator' do
         before :each do
-            @buffer = UvRays::BufferedTokenizer.new({
+            @buffer = UV::BufferedTokenizer.new({
                 delimiter: "\n\r",
                 size_limit: 10
             })

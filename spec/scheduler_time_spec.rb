@@ -7,12 +7,12 @@
 
 
 
-describe UvRays::Scheduler do
+describe UV::Scheduler do
 
     describe '.parse_duration' do
 
         def pd(s)
-            UvRays::Scheduler.parse_duration(s)
+            UV::Scheduler.parse_duration(s)
         end
 
         it 'parses duration strings' do
@@ -71,7 +71,7 @@ describe UvRays::Scheduler do
     describe '.to_duration' do
 
         def td(o, opts={})
-            UvRays::Scheduler.to_duration(o, opts)
+            UV::Scheduler.to_duration(o, opts)
         end
 
         it 'turns integers into duration strings' do
@@ -108,7 +108,7 @@ describe UvRays::Scheduler do
     describe '.to_duration_hash' do
 
         def tdh(o, opts={})
-            UvRays::Scheduler.to_duration_hash(o, opts)
+            UV::Scheduler.to_duration_hash(o, opts)
         end
 
         it 'turns integers duration hashes' do

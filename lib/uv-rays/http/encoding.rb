@@ -1,4 +1,4 @@
-module UvRays
+module UV
     module Http
         module Encoding
             HTTP_REQUEST_HEADER="%s %s HTTP/1.1\r\n"

@@ -1,4 +1,4 @@
-module UvRays
+module UV
     module Http
         class Request < ::Libuv::Q::DeferredPromise
             include Encoding
@@ -138,7 +138,7 @@ module UvRays
 
                 # Set the User-Agent if it hasn't been specified
                 if !head.key?('user-agent')
-                    head['user-agent'] = "UvRays HttpClient"
+                    head['user-agent'] = "UV HttpClient"
                 elsif head['user-agent'].nil?
                     head.delete('user-agent')
                 end

@@ -1,4 +1,4 @@
-module UvRays
+module UV
     class CookieJar
         def initialize
             @jar = ::CookieJar::Jar.new
@@ -196,7 +196,7 @@ module UvRays
             end
 
             @connecting = true
-            ::UvRays.try_connect(@transport, self, @host, @port)
+            ::UV.try_connect(@transport, self, @host, @port)
         end
 
         def get_connection(callback = nil, &blk)

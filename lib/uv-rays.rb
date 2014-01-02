@@ -29,7 +29,7 @@ require 'uv-rays/http_endpoint'
 
 
 
-module UvRays
+module UV
 
     # @private
     def self.klass_from_handler(klass, handler = nil, *args)
@@ -69,7 +69,7 @@ module UvRays
         raise ThreadError, "There is no Libuv Loop running on the current thread" if loop.nil?
 
         klass = klass_from_handler(InboundConnection, handler, *args)
-        UvRays::TcpServer.new loop, server, port, klass, *args
+        UV::TcpServer.new loop, server, port, klass, *args
     end
 
     def self.attach_server(sock, handler, *args)
@@ -79,7 +79,7 @@ module UvRays
         klass = klass_from_handler(InboundConnection, handler, *args)
         sd = sock.respond_to?(:fileno) ? sock.fileno : sock
 
-        UvRays::TcpServer.new loop, sd, sd, klass, *args
+        UV::TcpServer.new loop, sd, sd, klass, *args
     end
 
     def self.open_datagram_socket(handler, server = nil, port = nil, *args)
@@ -90,7 +90,4 @@ module UvRays
         c
     end
 end
-
-# Alias for {UvRays}
-UV = UvRays
 

@@ -44,7 +44,7 @@ module TestServer
 end
 
 
-describe UvRays::Connection do
+describe UV::Connection do
 	before :each do
 		@loop = Libuv::Loop.new
 		@general_failure = []

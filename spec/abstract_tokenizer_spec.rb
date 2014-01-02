@@ -1,8 +1,8 @@
 require 'uv-rays'
 
-describe UvRays::AbstractTokenizer do
+describe UV::AbstractTokenizer do
     before :each do
-        @buffer = UvRays::AbstractTokenizer.new({
+        @buffer = UV::AbstractTokenizer.new({
             indicator: "Start",
             callback: lambda { |data|
                 return 4 if data.length > 3
@@ -71,7 +71,7 @@ describe UvRays::AbstractTokenizer do
     end
 
     it "should work with regular expressions" do
-        @buffer = UvRays::AbstractTokenizer.new({
+        @buffer = UV::AbstractTokenizer.new({
             indicator: /Start/i,
             callback: lambda { |data|
                 return 4 if data.length > 3

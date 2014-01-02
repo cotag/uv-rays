@@ -23,7 +23,7 @@
 #++
 
 
-module UvRays
+module UV
     class Scheduler
         #
         # A 'cron line' is a line in the sense of a crontab

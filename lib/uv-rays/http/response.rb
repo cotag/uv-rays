@@ -1,4 +1,4 @@
-module UvRays
+module UV
     module Http
         class Headers < Hash
             # The HTTP version returned

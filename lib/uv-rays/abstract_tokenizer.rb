@@ -1,5 +1,5 @@
 
-module UvRays
+module UV
 
     # AbstractTokenizer is similar to BufferedTokernizer however should
     # only be used when there is no delimiter to work with. It uses a

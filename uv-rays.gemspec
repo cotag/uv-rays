@@ -2,7 +2,7 @@ require File.expand_path("../lib/uv-rays/version", __FILE__)
 
 Gem::Specification.new do |gem|
     gem.name          = "uv-rays"
-    gem.version       = UvRays::VERSION
+    gem.version       = UV::VERSION
     gem.license       = 'MIT'
     gem.authors       = ["Stephen von Takach"]
     gem.email         = ["steve@cotag.me"]

@@ -1,5 +1,5 @@
 
-module UvRays
+module UV
     def self.try_connect(tcp, handler, server, port)
         if IPAddress.valid? server
             tcp.finally handler.method(:on_close)
@@ -15,7 +15,7 @@ module UvRays
         else
             tcp.loop.lookup(server).then(
                 proc { |result|
-                    UvRays.try_connect(tcp, handler, result[0][0], port)
+                    UV.try_connect(tcp, handler, result[0][0], port)
                 },
                 proc { |failure|
                     # TODO:: Log error on loop
@@ -123,7 +123,7 @@ module UvRays
             @port = port
             @transport = @loop.tcp
 
-            ::UvRays.try_connect(@transport, self, @server, @port)
+            ::UV.try_connect(@transport, self, @server, @port)
         end
 
         def use_tls(args = {})
@@ -143,7 +143,7 @@ module UvRays
             @server = server || @server
             @port = port || @port
 
-            ::UvRays.try_connect(@transport, self, @server, @port)
+            ::UV.try_connect(@transport, self, @server, @port)
         end
     end
 

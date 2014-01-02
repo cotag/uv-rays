@@ -1,9 +1,9 @@
 require 'uv-rays'
 
-describe UvRays::Scheduler::CronLine do
+describe UV::Scheduler::CronLine do
 
     def cl(cronline_string)
-        UvRays::Scheduler::CronLine.new(cronline_string)
+        UV::Scheduler::CronLine.new(cronline_string)
     end
 
     def match(line, time)
@@ -118,7 +118,7 @@ describe UvRays::Scheduler::CronLine do
         it 'does not support ranges for monthdays (sun#1-sun#2)' do
 
             expect {
-                UvRays::Scheduler::CronLine.new('* * * * sun#1-sun#2')
+                UV::Scheduler::CronLine.new('* * * * sun#1-sun#2')
             }.to raise_error(ArgumentError)
         end
 
@@ -172,7 +172,7 @@ describe UvRays::Scheduler::CronLine do
     describe '#next_time' do
 
         def nt(cronline, now)
-            UvRays::Scheduler::CronLine.new(cronline).next_time(now)
+            UV::Scheduler::CronLine.new(cronline).next_time(now)
         end
 
         it 'computes the next occurence correctly' do
@@ -313,7 +313,7 @@ describe UvRays::Scheduler::CronLine do
     describe '#previous_time' do
 
         def pt(cronline, now)
-            UvRays::Scheduler::CronLine.new(cronline).previous_time(now)
+            UV::Scheduler::CronLine.new(cronline).previous_time(now)
         end
 
         it 'returns the previous time the cron should have triggered' do
@@ -400,11 +400,11 @@ describe UvRays::Scheduler::CronLine do
 
         it 'returns the appropriate "sun#2"-like string' do
 
-            class UvRays::Scheduler::CronLine
+            class UV::Scheduler::CronLine
                 public :monthdays
             end
 
-            cl = UvRays::Scheduler::CronLine.new('* * * * *')
+            cl = UV::Scheduler::CronLine.new('* * * * *')
 
             expect(cl.monthdays(local(1970, 1, 1))).to eq(%w[ thu#1 thu#-5 ])
             expect(cl.monthdays(local(1970, 1, 7))).to eq(%w[ wed#1 wed#-4 ])
@@ -418,12 +418,12 @@ describe UvRays::Scheduler::CronLine do
 
         it 'returns the shortest delta between two occurrences' do
 
-            expect(UvRays::Scheduler::CronLine.new('* * * * *').frequency).to eq(60)
-            expect(UvRays::Scheduler::CronLine.new('* * * * * *').frequency).to eq(1)
+            expect(UV::Scheduler::CronLine.new('* * * * *').frequency).to eq(60)
+            expect(UV::Scheduler::CronLine.new('* * * * * *').frequency).to eq(1)
 
-            expect(UvRays::Scheduler::CronLine.new('5 23 * * *').frequency).to eq(24 * 3600)
-            expect(UvRays::Scheduler::CronLine.new('5 * * * *').frequency).to eq(3600)
-            expect(UvRays::Scheduler::CronLine.new('10,20,30 * * * *').frequency).to eq(600)
+            expect(UV::Scheduler::CronLine.new('5 23 * * *').frequency).to eq(24 * 3600)
+            expect(UV::Scheduler::CronLine.new('5 * * * *').frequency).to eq(3600)
+            expect(UV::Scheduler::CronLine.new('10,20,30 * * * *').frequency).to eq(600)
         end
     end
 end

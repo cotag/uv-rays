@@ -1,5 +1,5 @@
 
-module UvRays
+module UV
 
     class ScheduledEvent < ::Libuv::Q::DeferredPromise
         include Comparable
@@ -161,7 +161,7 @@ module UvRays
         #
         # @param time [String] a human readable string representing the time period. 3w2d4h1m2s for example.
         # @param callback [Proc] a block or method to execute when the event triggers
-        # @return [::UvRays::Repeat]
+        # @return [::UV::Repeat]
         def every(time, callback = nil, &block)
             callback ||= block
             ms = Scheduler.parse_in(time)
@@ -178,7 +178,7 @@ module UvRays
         #
         # @param time [String] a human readable string representing the time period. 3w2d4h1m2s for example.
         # @param callback [Proc] a block or method to execute when the event triggers
-        # @return [::UvRays::OneShot]
+        # @return [::UV::OneShot]
         def in(time, callback = nil, &block)
             callback ||= block
             ms = @loop.now + Scheduler.parse_in(time)
@@ -195,7 +195,7 @@ module UvRays
         #
         # @param time [String, Time] a representation of a date and time that can be parsed
         # @param callback [Proc] a block or method to execute when the event triggers
-        # @return [::UvRays::OneShot]
+        # @return [::UV::OneShot]
         def at(time, callback = nil, &block)
             callback ||= block
             ms = Scheduler.parse_at(time) - @time_diff
@@ -212,7 +212,7 @@ module UvRays
         #
         # @param schedule [String] a standard CRON job line.
         # @param callback [Proc] a block or method to execute when the event triggers
-        # @return [::UvRays::Repeat]
+        # @return [::UV::Repeat]
         def cron(schedule, callback = nil, &block)
             callback ||= block
             ms = Scheduler.parse_cron(time)
@@ -312,7 +312,7 @@ end
 module Libuv
     class Loop
         def scheduler
-            @scheduler ||= UvRays::Scheduler.new(@loop)
+            @scheduler ||= UV::Scheduler.new(@loop)
             @scheduler
         end
     end

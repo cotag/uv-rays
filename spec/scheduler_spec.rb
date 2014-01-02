@@ -1,6 +1,6 @@
 require 'uv-rays'
 
-describe UvRays::Scheduler do
+describe UV::Scheduler do
     before :each do
         @loop = Libuv::Loop.new
         @general_failure = []

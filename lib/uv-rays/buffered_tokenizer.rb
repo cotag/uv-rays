@@ -13,7 +13,7 @@
 #             end
 #         end
 #     end
-module UvRays
+module UV
     class BufferedTokenizer
 
         attr_accessor :delimiter, :indicator, :size_limit, :verbose
@@ -23,7 +23,7 @@ module UvRays
             @delimiter  = options[:delimiter]
             @indicator  = options[:indicator]
             @size_limit = options[:size_limit]
-            @verbose  = options[:verbose] if @size_limit
+            @verbose    = options[:verbose] if @size_limit
 
             raise ArgumentError, 'no delimiter provided' unless @delimiter
 

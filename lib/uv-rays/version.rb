@@ -1,3 +1,3 @@
-module UvRays
-    VERSION = '0.0.1'
+module UV
+    VERSION = '0.1.0'
 end
