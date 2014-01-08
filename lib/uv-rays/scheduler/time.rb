@@ -28,7 +28,7 @@ module UV
 
         def self.parse_in(o, quiet = false)
             # if o is an integer we are looking at seconds
-            o.is_a?(String) ? parse_duration(o, quiet) : (o * 1000)
+            o.is_a?(String) ? parse_duration(o, quiet) : o
         end
 
         TZ_REGEX = /\b((?:[a-zA-Z][a-zA-z0-9\-+]+)(?:\/[a-zA-Z0-9\-+]+)?)\b/

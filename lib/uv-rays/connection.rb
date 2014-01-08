@@ -85,6 +85,15 @@ module UV
             return file
         end
 
+        def keepalive(raw_time)
+            time = raw_time.to_i
+            if time.to_i <= 0
+                @transport.disable_keepalive
+            else
+                @transport.enable_keepalive(time)
+            end
+        end
+
         def on_connect(transport) # user to define
         end
 
@@ -118,7 +127,7 @@ module UV
         def initialize(server, port)
             super()
 
-            @loop = Libuv::Loop.current
+            @loop = Libuv::Loop.current || Libuv::Loop.default
             @server = server
             @port = port
             @transport = @loop.tcp
@@ -151,7 +160,7 @@ module UV
         def initialize(server = nil, port = nil)
             super()
 
-            @loop = Libuv::Loop.current
+            @loop = Libuv::Loop.current || Libuv::Loop.default
             @transport = @loop.udp
             @transport.progress method(:on_read)
 

@@ -13,13 +13,13 @@ Gem::Specification.new do |gem|
     gem.required_ruby_version = '>= 1.9.2'
     gem.require_paths = ["lib"]
 
-    gem.add_runtime_dependency     'libuv'
+    gem.add_runtime_dependency     'libuv', '>= 0.11.19'
     gem.add_runtime_dependency     'bisect'
     gem.add_runtime_dependency     'tzinfo'
     gem.add_runtime_dependency     'cookiejar'
     gem.add_runtime_dependency     'ipaddress'
     gem.add_runtime_dependency     'addressable'
-    gem.add_runtime_dependency     'http-parser'
+    gem.add_runtime_dependency     'http-parser', '>= 1.0.4'
 
     gem.add_development_dependency 'rspec', '>= 2.14'
     gem.add_development_dependency 'rake', '>= 10.1'

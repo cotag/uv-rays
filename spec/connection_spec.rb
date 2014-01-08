@@ -57,10 +57,16 @@ describe UV::Connection do
 
 	after :each do
 		module TestConnect
-			remove_const :UR_CONNECTION_CLASS
+			begin
+				remove_const :UR_CONNECTION_CLASS
+			rescue
+			end
 		end
 		module TestServer
-			remove_const :UR_CONNECTION_CLASS
+			begin
+				remove_const :UR_CONNECTION_CLASS
+			rescue
+			end
 		end
 	end
 	
@@ -84,6 +90,26 @@ describe UV::Connection do
 			expect(res[0]).to eq(true)
 			expect(res[1]).to eq(true)
 			expect(res[2]).to eq('hello')
+		end
+
+		it "should not call connect on connection failure", :network => true do
+			@loop.run { |logger|
+				logger.progress do |level, errorid, error|
+					begin
+						@general_failure << "Log called: #{level}: #{errorid}\n#{error.message}\n#{error.backtrace.join("\n")}\n"
+					rescue Exception
+						@general_failure << 'error in logger'
+					end
+				end
+
+				@klass = UV.connect '127.0.0.1', 8123, TestConnect
+			}
+
+			expect(@general_failure).to eq([])
+			res = @klass.check
+			expect(res[0]).to eq(nil)
+			expect(res[1]).to eq(true)	# Disconnect
+			expect(res[2]).to eq(nil)
 		end
 	end
 

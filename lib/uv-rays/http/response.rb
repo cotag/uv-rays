@@ -52,7 +52,7 @@ module UV
                 @chunked = false
             end
 
-            def on_status_complete(parser)
+            def on_status(parser, data)
                 # Different HTTP versions have different defaults
                 if @state.http_minor == 0
                     @close_connection = true

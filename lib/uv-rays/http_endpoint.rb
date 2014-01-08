@@ -60,7 +60,7 @@ module UV
             uri.port ||= (@https ? 443 : 80)
 
 
-            @loop = Libuv::Loop.current
+            @loop = Libuv::Loop.current || Libuv::Loop.default
             @host = uri.host
             @port = uri.port
             #@transport = @loop.tcp
