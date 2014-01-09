@@ -182,7 +182,7 @@ module UV
             else
                 # Async DNS resolution
                 # Note:: send here will chain the promise
-                tcp.loop.lookup(server).then do |result|
+                @loop.lookup(recipient_address).then do |result|
                     @transport.send result[0][0], recipient_port, data
                 end
             end
