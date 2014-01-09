@@ -15,9 +15,10 @@ module TestConnect
 		@loop.stop
 	end
 
-	def on_read(data, connection, port = nil)
+	def on_read(data, connection, port = nil, udp_test = nil)
 		@received = data
 		close_connection(:after_writing)
+		@loop.stop if udp_test 	# misc is set when test connect is a UDP connection
 	end
 
 	def check
@@ -36,10 +37,8 @@ module TestServer
 		write('hello')
 	end
 
-	def on_read(*args) #data, ip, port, conection)
-		#p "was sent #{data} from port #{port}"
-		#send_datagram(data, ip, port)
-		@loop.stop
+	def on_read(data, ip, port, conection)
+		send_datagram(data, ip, port)
 	end
 end
 
@@ -157,7 +156,7 @@ describe UV::Connection do
 			res = @klass.check
 			expect(res[0]).to eq(nil)
 			expect(res[1]).to eq(nil)
-			expect(res[2]).to eq(nil) #'hello' (libuv receive bug?)
+			expect(res[2]).to eq('hello')
 		end
 	end
 end
