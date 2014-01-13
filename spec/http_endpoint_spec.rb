@@ -9,7 +9,7 @@ module HttpServer
 	end
 
 	def on_message_complete(parser)
-		write("HTTP/1.1 200 OK\r\nContent-type: text/html\r\nContent-length: 0\r\n\r\n")
+		write("HTTP/1.1 200 OK\r\nContent-type: text/html\r\nContent-length: 1\r\n\r\ny")
 	end
 
 	def on_read(data, connection)
@@ -84,6 +84,8 @@ describe UV::HttpEndpoint do
 			expect(@response[:headers].status).to eq(200)
 			expect(@response[:headers].cookies).to eq({})
 			expect(@response[:headers].keep_alive).to eq(true)
+
+			expect(@response[:body]).to eq('y')
 		end
 
 		it "should send multiple requests on the same connection", :network => true do

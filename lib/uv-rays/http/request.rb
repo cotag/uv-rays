@@ -30,7 +30,7 @@ module UV
 
                 @path = options[:path]
                 @method = options[:method]
-                @uri = encode_host(endpoint.host, endpoint.port) + @path
+                @uri = "#{endpoint.scheme}#{encode_host(endpoint.host, endpoint.port)}#{@path}"
             end
 
             def resolve(response)

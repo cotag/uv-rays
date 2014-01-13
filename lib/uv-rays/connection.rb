@@ -6,7 +6,7 @@ module UV
             tcp.progress handler.method(:on_read)
             tcp.connect server, port do
                 tcp.enable_nodelay
-                tcp.start_tls(handler.using_tls) unless handler.using_tls == false
+                tcp.start_tls(handler.using_tls) if handler.using_tls
 
                 # on_connect could call use_tls so must come after start_tls
                 handler.on_connect(tcp)

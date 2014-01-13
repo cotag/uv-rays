@@ -26,17 +26,19 @@ module UV
     end # CookieJar
 
 
-    class HttpEndpoint < TcpConnection
-        TRANSFER_ENCODING="TRANSFER_ENCODING"
-        CONTENT_ENCODING="CONTENT_ENCODING"
-        CONTENT_LENGTH="CONTENT_LENGTH"
-        CONTENT_TYPE="CONTENT_TYPE"
-        LAST_MODIFIED="LAST_MODIFIED"
-        KEEP_ALIVE="CONNECTION"
-        LOCATION="LOCATION"
-        HOST="HOST"
-        ETAG="ETAG"
-        CRLF="\r\n"
+    class HttpEndpoint < OutboundConnection
+        TRANSFER_ENCODING="TRANSFER_ENCODING".freeze
+        CONTENT_ENCODING="CONTENT_ENCODING".freeze
+        CONTENT_LENGTH="CONTENT_LENGTH".freeze
+        CONTENT_TYPE="CONTENT_TYPE".freeze
+        LAST_MODIFIED="LAST_MODIFIED".freeze
+        KEEP_ALIVE="CONNECTION".freeze
+        LOCATION="LOCATION".freeze
+        HOST="HOST".freeze
+        ETAG="ETAG".freeze
+        CRLF="\r\n".freeze
+        HTTPS="https://".freeze
+        HTTP="http://".freeze
 
 
         @@defaults = {
@@ -44,7 +46,7 @@ module UV
             :keepalive => true
         }
 
-        attr_reader :host, :port, :using_tls, :loop, :cookiejar
+        attr_reader :scheme, :host, :port, :using_tls, :loop, :cookiejar
         attr_reader :connect_timeout, :inactivity_timeout
 
         def initialize(uri, options = {})
@@ -52,12 +54,10 @@ module UV
             @inactivity_timeout  = options[:inactivity_timeout] ||= 10   # default connection inactivity (post-setup) timeout
 
 
-            @using_tls = options[:tls] || options[:ssl] || false
-            @using_tls.delete(:server) unless @using_tls == false
-
             uri = uri.kind_of?(Addressable::URI) ? uri : Addressable::URI::parse(uri.to_s)
-            @https = uri.scheme == "https"
+            @https = uri.scheme == "https" || @using_tls
             uri.port ||= (@https ? 443 : 80)
+            @scheme = @https ? HTTPS : HTTP
 
 
             @loop = Libuv::Loop.current || Libuv::Loop.default
@@ -117,7 +117,7 @@ module UV
             }
 
             ##
-            # TODO:: Add middleware here
+            # TODO:: Add response middleware here
             request.then blk if blk
 
             # Add to pending requests and schedule using the breakpoint
@@ -167,6 +167,9 @@ module UV
         def on_connect(transport)
             @connecting = false
             @ready = true
+
+            # start tls if connection is encrypted
+            use_tls() if @https
 
             # Update timeouts
             stop_timer
