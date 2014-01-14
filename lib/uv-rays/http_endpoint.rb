@@ -55,7 +55,7 @@ module UV
 
 
             uri = uri.kind_of?(Addressable::URI) ? uri : Addressable::URI::parse(uri.to_s)
-            @https = uri.scheme == "https" || @using_tls
+            @https = uri.scheme == "https"
             uri.port ||= (@https ? 443 : 80)
             @scheme = @https ? HTTPS : HTTP
 
