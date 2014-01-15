@@ -22,6 +22,10 @@ module UV
                 @state.type = :response
             end
 
+
+            attr_reader :request
+
+
             # Called on connection disconnect
             def reset!
                 @state.reset!
@@ -33,6 +37,7 @@ module UV
                 if @parser.parse(@state, data)
                     if @request
                         @request.reject(@state.error)
+                        @request = nil
                         return true
                     #else # silently fail here
                     #    p 'parse error and no request..'
@@ -113,6 +118,17 @@ module UV
                 # Clean up memory
                 @request = nil
                 @body = nil
+            end
+
+            # We need to flush the response on disconnect if content-length is undefined
+            # As per the HTTP spec
+            def eof
+                if @headers.nil? && @request.headers[:'Content-Length'].nil?
+                    on_message_complete(nil)
+                else
+                    # Reject if this is a partial response
+                    @request.reject(:partial_response)
+                end
             end
         end
     end

@@ -152,6 +152,9 @@ module UV
             @connecting = false
             stop_timer
 
+            # Flush any processing request
+            @response.eof if @response.request
+
             # Reject any requests waiting on a response
             @pending_responses.each do |request|
                 request.reject(:disconnected)
@@ -220,9 +223,7 @@ module UV
         def connect_timeout
             @timer.stop
             @transport.close
-            @connection_pending.each do |request|
-                request.reject(:connection_timeout)
-            end
+            @connection_pending.clear
         end
 
         def idle_timeout

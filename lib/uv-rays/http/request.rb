@@ -11,6 +11,7 @@ module UV
 
             attr_reader :path
             attr_reader :method
+            attr_reader :headers
 
 
             def cookies_hash
@@ -97,7 +98,7 @@ module UV
                 end
             end
 
-            def headers(callback, &blk)
+            def on_headers(callback, &blk)
                 callback ||= blk
                 if @headers.nil?
                     @headers_callback = callback
