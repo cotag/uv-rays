@@ -58,7 +58,7 @@ module UV
             raise se
         end
 
-        def self.parse_cron(o, quiet)
+        def self.parse_cron(o, quiet = false)
             CronLine.new(o)
 
         rescue ArgumentError => ae
