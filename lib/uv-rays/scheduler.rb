@@ -215,7 +215,7 @@ module UV
         # @return [::UV::Repeat]
         def cron(schedule, callback = nil, &block)
             callback ||= block
-            ms = Scheduler.parse_cron(time)
+            ms = Scheduler.parse_cron(schedule)
             event = Repeat.new(self, ms)
 
             if callback.respond_to? :call
