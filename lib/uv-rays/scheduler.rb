@@ -238,6 +238,7 @@ module UV
             else
                 @schedules << event
             end
+            @next = nil if @next == event
 
             # optimal algorithm for inserting into an already sorted list
             Bisect.insort(@scheduled, event)
@@ -295,6 +296,7 @@ module UV
         # Is called when the libuv timer fires
         def on_timer
             schedule = @scheduled.shift
+            @schedules.delete(schedule)
             schedule.trigger
 
             # execute schedules that are within 30ms of this event
@@ -302,6 +304,7 @@ module UV
             now = @loop.now + 30
             while @scheduled.first && @scheduled.first.next_scheduled <= now
                 schedule = @scheduled.shift
+                @schedules.delete(schedule)
                 schedule.trigger
             end
             check_timer
