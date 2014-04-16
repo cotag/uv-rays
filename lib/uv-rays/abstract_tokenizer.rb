@@ -57,7 +57,17 @@ module UV
                     end
                 else
                     # This will work with a regex
-                    index = messages.last.nil? ? 0 : @input[0...-last.length].rindex(messages.last) + messages.last.length
+                    index = if messages.last.nil?
+                        0
+                    else
+                        # Possible that rindex will not find a match
+                        check = @input[0...-last.length].rindex(messages.last)
+                        if check.nil?
+                            0
+                        else
+                            check + messages.last.length
+                        end
+                    end
                     indicator_val = @input[index...-last.length]
                     @input = indicator_val + last
                 end
