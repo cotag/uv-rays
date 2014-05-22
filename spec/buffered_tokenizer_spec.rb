@@ -17,60 +17,6 @@ describe UV::BufferedTokenizer do
             expect(result).to eq([])
         end
 
-        it "should tokenize messages where the data is a complete message" do
-            msg1 = "test\n\r"
-
-            result = @buffer.extract(msg1)
-            expect(result).to eq(['test'])
-        end
-
-        it "should return multiple complete messages" do
-            msg1 = "test\n\rwhoa\n\r"
-
-            result = @buffer.extract(msg1)
-            expect(result).to eq(['test', 'whoa'])
-        end
-        
-        it "should tokenize messages where the delimiter is split" do
-            msg1 = "test\n"
-            msg2 = "\rwhoa\n\r"
-
-            result = @buffer.extract(msg1)
-            expect(result).to eq([])
-            result = @buffer.extract(msg2)
-            expect(result).to eq(['test', 'whoa'])
-
-
-            msg3 = "test\n"
-            msg4 = "\rwhoa\n"
-            msg5 = "\r"
-
-            result = @buffer.extract(msg3)
-            expect(result).to eq([])
-            result = @buffer.extract(msg4)
-            expect(result).to eq(['test']        )
-
-            result = @buffer.extract(msg5)
-            expect(result).to eq(['whoa'])
-        end
-    end
-
-    describe 'delimiter' do
-
-        before :each do
-            @buffer = UV::BufferedTokenizer.new({
-                delimiter: "\n\r"
-            })
-        end
-
-
-        it "should not return anything when a complete message is not available" do
-            msg1 = "test"
-
-            result = @buffer.extract(msg1)
-            expect(result).to eq([])
-        end
-
         it "should not return anything when the messages is empty" do
             msg1 = ""
 
