@@ -57,7 +57,7 @@ describe UV::HttpEndpoint do
 	end
 	
 	describe 'basic http request' do
-		it "should send a request then receive a response", :network => true do
+		it "should send a request then receive a response" do
 			@loop.run { |logger|
 				logger.progress do |level, errorid, error|
 					begin
@@ -88,7 +88,7 @@ describe UV::HttpEndpoint do
 			expect(@response[:body]).to eq('y')
 		end
 
-		it "should send multiple requests on the same connection", :network => true do
+		it "should send multiple requests on the same connection" do
 			@loop.run { |logger|
 				logger.progress do |level, errorid, error|
 					begin
@@ -129,7 +129,7 @@ describe UV::HttpEndpoint do
 			expect(@response2[:headers].keep_alive).to eq(true)
 		end
 
-		it "should send pipelined requests on the same connection", :network => true do
+		it "should send pipelined requests on the same connection" do
 			@loop.run { |logger|
 				logger.progress do |level, errorid, error|
 					begin
@@ -172,7 +172,7 @@ describe UV::HttpEndpoint do
 	end
 
 	describe 'old http request' do
-		it "should send a request then receive a response", :network => true do
+		it "should send a request then receive a response" do
 			@loop.run { |logger|
 				logger.progress do |level, errorid, error|
 					begin
@@ -201,7 +201,7 @@ describe UV::HttpEndpoint do
 			expect(@response[:headers].keep_alive).to eq(false)
 		end
 
-		it "should send multiple requests", :network => true do
+		it "should send multiple requests" do
 			@loop.run { |logger|
 				logger.progress do |level, errorid, error|
 					begin
@@ -242,7 +242,7 @@ describe UV::HttpEndpoint do
 			expect(@response2[:headers].keep_alive).to eq(false)
 		end
 
-		it "should fail to send pipelined requests", :network => true do
+		it "should fail to send pipelined requests" do
 			@loop.run { |logger|
 				logger.progress do |level, errorid, error|
 					begin

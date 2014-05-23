@@ -70,7 +70,7 @@ describe UV::Connection do
 	end
 	
 	describe 'basic tcp client server' do
-		it "should send some data and shutdown the socket", :network => true do
+		it "should send some data and shutdown the socket" do
 			@loop.run { |logger|
 				logger.progress do |level, errorid, error|
 					begin
@@ -91,7 +91,7 @@ describe UV::Connection do
 			expect(res[2]).to eq('hello')
 		end
 
-		it "should not call connect on connection failure", :network => true do
+		it "should not call connect on connection failure" do
 			@loop.run { |logger|
 				logger.progress do |level, errorid, error|
 					begin
@@ -113,7 +113,7 @@ describe UV::Connection do
 	end
 
 	describe 'basic tcp client server with tls' do
-		it "should send some data and shutdown the socket", :network => true do
+		it "should send some data and shutdown the socket" do
 			@loop.run { |logger|
 				logger.progress do |level, errorid, error|
 					begin

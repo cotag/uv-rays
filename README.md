@@ -1,6 +1,6 @@
 # uv-rays
 
-[![Build Status](https://travis-ci.org/cotag/uv-rays.png?branch=master)](https://travis-ci.org/cotag/uv-rays)
+[![Build Status](https://travis-ci.org/cotag/uv-rays.svg?branch=master)](https://travis-ci.org/cotag/uv-rays)
 
 UV-Rays was designed to eliminate the complexities of high-performance threaded network programming, allowing engineers to concentrate on their application logic.
 
