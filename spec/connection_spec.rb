@@ -38,7 +38,10 @@ module TestServer
 	end
 
 	def on_read(data, ip, port, conection)
-		send_datagram(data, ip, port)
+		# ephemeral port is used for sending on windows and linux?
+		# Bound port seems to be used on OSX...
+		# TODO:: Needs investigation, might be a Libuv bug
+		send_datagram(data, ip, 3211)
 	end
 end
 
@@ -137,7 +140,7 @@ describe UV::Connection do
 	end
 
 	describe 'basic udp client server' do
-		it "should send some data and close the socket", :network => true do
+		it "should send some data and close the socket" do
 			@loop.run { |logger|
 				logger.progress do |level, errorid, error|
 					begin
