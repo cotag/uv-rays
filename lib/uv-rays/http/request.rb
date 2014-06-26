@@ -82,8 +82,17 @@ module UV
                 if body
                     transport.write(body).catch error
                 elsif file
-                    # TODO:: Send file
-                    #@conn.stream_file_data @req.file, :http_chunks => false
+                    # Send file
+                    fileRef = @endpoint.loop.file file, File::RDONLY
+                    fileRef.progress do
+                        # File is open and available for reading
+                        pSend = fileRef.send_file(transport, :raw)
+                        pSend.catch error
+                        pSend.finally do
+                            fileRef.close
+                        end
+                    end
+                    fileRef.catch error
                 end
             end
 

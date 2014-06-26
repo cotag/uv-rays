@@ -88,9 +88,9 @@ module UV
             #         String - custom auth string (OAuth, etc)
             def encode_auth(k,v)
                 if v.is_a? Array
-                    FIELD_ENCODING % [k, ["Basic", Base64.encode64(v.join(":")).split.join].join(" ")]
+                    FIELD_ENCODING % [k, ["Basic", Base64.strict_encode64(v.join(":"))].join(" ")]
                 else
-                    encode_field(k,v)
+                    encode_field(k, v)
                 end
             end
 
