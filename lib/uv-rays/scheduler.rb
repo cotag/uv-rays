@@ -53,10 +53,10 @@ module UV
             @last_scheduled = @loop.now
 
             
-            parsed_time = parse_in(time, :quiet)
+            parsed_time = Scheduler.parse_in(time, :quiet)
             if parsed_time.nil?
                 # Parse at will throw an error if time is invalid
-                parsed_time = parse_at(time) - @scheduler.time_diff
+                parsed_time = Scheduler.parse_at(time) - @scheduler.time_diff
             else
                 parsed_time += @last_scheduled
             end
@@ -84,7 +84,7 @@ module UV
         #
         # @param schedule [String] a standard CRON job line or a human readable string representing a time period.
         def update(every)
-            time = parse_in(every, :quiet) || parse_cron(every, :quiet)
+            time = Scheduler.parse_in(every, :quiet) || Scheduler.parse_cron(every, :quiet)
             raise ArgumentError.new("couldn't parse \"#{o}\"") if time.nil?
 
             @every = time
@@ -288,7 +288,16 @@ module UV
                 end
 
                 if not @next.nil?
-                    @timer.start(@next - @loop.now)
+                    in_time = @next - @loop.now
+
+                    # Ensure there are never negative start times
+                    if in_time > 30
+                        @timer.start(in_time)
+                    else
+                        @loop.next_tick do
+                            on_timer
+                        end
+                    end
                 end
             end
         end
