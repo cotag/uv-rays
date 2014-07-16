@@ -24,6 +24,11 @@ module UV
             super(loop, defer)
         end
 
+        # Provide relevant inspect information
+        def inspect
+            "#<#{self.class}:0x#{self.__id__.to_s(16)} next_scheduled=#{@next_scheduled} trigger_count=#{@trigger_count} last_scheduled=#{@last_scheduled} created=#{@created}>"
+        end
+
         # required for comparable
         def <=>(anOther)
             @next_scheduled <=> anOther.next_scheduled
@@ -140,6 +145,7 @@ module UV
     class Scheduler
         attr_reader :loop
         attr_reader :time_diff
+        attr_reader :next
 
 
         def initialize(loop)
@@ -294,9 +300,8 @@ module UV
                     if in_time > 30
                         @timer.start(in_time)
                     else
-                        @loop.next_tick do
-                            on_timer
-                        end
+                        # Effectively next tick
+                        @timer.start(0)
                     end
                 end
             end
