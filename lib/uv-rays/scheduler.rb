@@ -2,6 +2,8 @@
 module UV
 
     class ScheduledEvent < ::Libuv::Q::DeferredPromise
+        # Note:: Comparable should not effect Hashes
+        # it will however effect arrays
         include Comparable
 
         attr_reader :created
@@ -26,8 +28,15 @@ module UV
 
         # Provide relevant inspect information
         def inspect
-            "#<#{self.class}:0x#{self.__id__.to_s(16)} next_scheduled=#{@next_scheduled} trigger_count=#{@trigger_count} last_scheduled=#{@last_scheduled} created=#{@created}>"
+            insp = "#<#{self.class}:0x#{self.__id__.to_s(16)} "
+            insp << "trigger_count=#{@trigger_count} "
+            insp << "config=#{info} " if self.respond_to?(:info, true)
+            insp << "next_scheduled=#{@next_scheduled} "
+            insp << "last_scheduled=#{@last_scheduled} created=#{@created}>"
+            insp
         end
+        alias_method :to_s, :inspect
+
 
         # required for comparable
         def <=>(anOther)
@@ -56,7 +65,6 @@ module UV
         # Updates the scheduled time
         def update(time)
             @last_scheduled = @loop.now
-
             
             parsed_time = Scheduler.parse_in(time, :quiet)
             if parsed_time.nil?
@@ -106,6 +114,7 @@ module UV
         # can be used to reset a repeating timer
         def resume
             @paused = false
+            @last_scheduled = @loop.now
             reschedule
         end
 
@@ -134,10 +143,14 @@ module UV
         end
 
         def reschedule
-            if not @paused
+            unless @paused
                 next_time
                 @scheduler.reschedule(self)
             end
+        end
+
+        def info
+            "repeat:#{@every}"
         end
     end
 
@@ -155,6 +168,9 @@ module UV
             @next = nil     # Next schedule time
             @timer = nil    # Reference to the timer
             @timer_callback = method(:on_timer)
+
+            # Not really required when used correctly
+            @critical = Mutex.new
 
             # as the libuv time is taken from an arbitrary point in time we
             # need to roughly synchronize between it and ruby's Time.now
@@ -238,41 +254,60 @@ module UV
             # Check promise is not resolved
             return if event.resolved?
 
-            # Remove the event from the scheduled list and ensure it is in the schedules set
-            if @schedules.include?(event)
-                @scheduled.delete(event)
-            else
-                @schedules << event
-            end
-            @next = nil if @next == event
+            @critical.synchronize {
+                # Remove the event from the scheduled list and ensure it is in the schedules set
+                if @schedules.include?(event)
+                    remove(event)
+                else
+                    @schedules << event
+                end
+                @next = nil if @next == event
 
-            # optimal algorithm for inserting into an already sorted list
-            Bisect.insort(@scheduled, event)
+                # optimal algorithm for inserting into an already sorted list
+                Bisect.insort(@scheduled, event)
 
-            # Update the timer
-            check_timer
+                # Update the timer
+                check_timer
+            }
         end
 
         # Removes an event from the schedule
         #
         # @param event [ScheduledEvent]
         def unschedule(event)
-            # Only call delete and update the timer when required
-            if @schedules.include?(event)
-                @schedules.delete(event)
-                @scheduled.delete(event)
-                check_timer
-            end
+            @critical.synchronize {
+                # Only call delete and update the timer when required
+                if @schedules.include?(event)
+                    @schedules.delete(event)
+                    remove(event)
+                    check_timer
+                end
+            }
         end
 
 
         private
 
 
+        # Remove an element from the array
+        def remove(obj)
+            position = nil
+
+            @scheduled.each_index do |i|
+                # object level comparison
+                if obj.equal? @scheduled[i]
+                    position = i
+                    break
+                end
+            end
+
+            @scheduled.slice!(position) unless position.nil?
+        end
+
         # First time schedule we want to bind to the promise
         def schedule(event)
             reschedule(event)
-
+            
             event.finally do
                 unschedule event
             end
@@ -288,7 +323,7 @@ module UV
             if existing != @next
                 # lazy load the timer
                 if @timer.nil?
-                    @timer = @loop.timer @timer_callback
+                    new_timer
                 else
                     @timer.stop
                 end
@@ -309,19 +344,32 @@ module UV
 
         # Is called when the libuv timer fires
         def on_timer
-            schedule = @scheduled.shift
-            @schedules.delete(schedule)
-            schedule.trigger
-
-            # execute schedules that are within 30ms of this event
-            # Basic timer coalescing..
-            now = @loop.now + 30
-            while @scheduled.first && @scheduled.first.next_scheduled <= now
+            @critical.synchronize {
                 schedule = @scheduled.shift
                 @schedules.delete(schedule)
                 schedule.trigger
+
+                # execute schedules that are within 30ms of this event
+                # Basic timer coalescing..
+                now = @loop.now + 30
+                while @scheduled.first && @scheduled.first.next_scheduled <= now
+                    schedule = @scheduled.shift
+                    @schedules.delete(schedule)
+                    schedule.trigger
+                end
+                check_timer
+            }
+        end
+
+        # Provide some assurances on timer failure
+        def new_timer
+            @timer = @loop.timer @timer_callback
+            @timer.finally do
+                new_timer
+                unless @next.nil?
+                    @timer.start(@next)
+                end
             end
-            check_timer
         end
     end
 end
