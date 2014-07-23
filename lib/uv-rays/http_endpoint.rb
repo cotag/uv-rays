@@ -88,7 +88,7 @@ module UV
             @response = Http::Response.new(@pending_responses)
 
             # Timeout timer
-            if @connect_timeout || @inactivity_timeout
+            if @connect_timeout > 0 || @inactivity_timeout > 0
                 @timer = @loop.timer
             end
         end
@@ -147,6 +147,12 @@ module UV
             end
         end
 
+        def close_connection(after_writing = false)
+            @force_close = true
+            super(after_writing)
+            reset
+        end
+
         def on_close
             @ready = false
             @connecting = false
@@ -161,8 +167,8 @@ module UV
             end
             @pending_responses.clear
             
-            # Re-connect if there are pending requests
-            if not @connection_pending.empty?
+            # Re-connect if there are pending requests unless we've force closed this connection
+            if !@force_close && !@connection_pending.empty?
                 do_connect
             end
         end
@@ -189,11 +195,23 @@ module UV
             @connection_pending.clear
         end
 
+        def reset
+            @connection_pending.clear
+            idle_timeout
+            @pending_requests.each do |request|
+                request.reject(:reset)
+            end
+            @pending_requests.clear
+            @breakpoint = ::Libuv::Q::ResolvedPromise.new(@loop, true)
+        end
+
 
         protected
 
 
         def do_connect
+            return if @force_close
+            
             @transport = @loop.tcp
 
             if @connect_timeout > 0
@@ -232,9 +250,12 @@ module UV
             @pending_responses.each do |request|
                 request.reject(:idle_timeout)
             end
+            @pending_responses.clear
         end
 
         def next_request
+            return if @force_close || @pending_requests.empty?
+
             request = @pending_requests.shift
 
             get_connection do
