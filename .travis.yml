@@ -2,8 +2,8 @@ language: ruby
 rvm:
   - "2.0.0"
   - ruby-head
-  - rbx-2.2.1
-  - jruby-head
+  - rbx
+  - jruby-19mode
 branches:
   only:
     - master
