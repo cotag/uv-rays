@@ -47,10 +47,9 @@ module UV
         }
 
         attr_reader :scheme, :host, :port, :using_tls, :loop, :cookiejar
-        attr_reader :connect_timeout, :inactivity_timeout
+        attr_reader :inactivity_timeout
 
         def initialize(uri, options = {})
-            @connect_timeout     = options[:connect_timeout] ||= 5        # default connection setup timeout
             @inactivity_timeout  = options[:inactivity_timeout] ||= 10   # default connection inactivity (post-setup) timeout
 
 
@@ -66,29 +65,24 @@ module UV
             #@transport = @loop.tcp
 
             # State flags
-            @ready = false
+            @closed = true
+            @closing = false
             @connecting = false
 
             # Current requests
             @pending_requests = []
-            @pending_responses = []
-            @connection_pending = []
+            @staging_request = nil
+            @waiting_response = nil
             @cookiejar = CookieJar.new
 
             # Callback methods
-            @connection_method = method(:get_connection)
-            @next_request_method = method(:next_request)
             @idle_timeout_method = method(:idle_timeout)
-            @connect_timeout_method = method(:connect_timeout)
-
-            # Used to indicate when we can start the next send
-            @breakpoint = ::Libuv::Q::ResolvedPromise.new(@loop, true)
 
             # Manages the tokenising of response from the input stream
-            @response = Http::Response.new(@pending_responses)
+            @response = Http::Response.new
 
             # Timeout timer
-            if @connect_timeout > 0 || @inactivity_timeout > 0
+            if @inactivity_timeout > 0
                 @timer = @loop.timer
             end
         end
@@ -109,12 +103,23 @@ module UV
 
             # Setup the request with callbacks
             request = Http::Request.new(self, options)
-            request.then proc { |result|
-                if !result[:headers].keep_alive
+            request.then(proc { |result|
+                @waiting_response = nil
+
+                if @closed || result[:headers].keep_alive
+                    next_request
+                else
+                    @closing = true
                     @transport.close
                 end
+
                 result
-            }
+            }, proc { |err|
+                @waiting_response = nil
+                next_request
+
+                ::Libuv::Q.reject(@loop, err)
+            })
 
             ##
             # TODO:: Add response middleware here
@@ -122,60 +127,35 @@ module UV
 
             # Add to pending requests and schedule using the breakpoint
             @pending_requests << request
-            @breakpoint.finally @next_request_method
-            if options[:pipeline] == true
-                options[:keepalive] = true
-            else
-                @breakpoint = request
+            if !@waiting_response && !@staging_request
+                next_request
             end
 
             # return the request
             request
         end
 
-        def middleware
-            # TODO:: allow for middle ware
-            []
+
+        def next_request
+            @staging_request = @pending_requests.shift
+            process_request unless @staging_request.nil?
         end
 
-        def on_read(data, *args)
-            @timer.again if @inactivity_timeout > 0
-            # returns true on error
-            # Response rejects the request
-            if @response.receive(data)
-                @transport.close
+        def process_request
+            if @closed && !@connecting
+                @transport = @loop.tcp
+
+                @connecting = @staging_request
+                ::UV.try_connect(@transport, self, @host, @port)
+            elsif !@closing
+                try_send
             end
         end
 
-        def close_connection(after_writing = false)
-            @force_close = true
-            super(after_writing)
-            reset
-        end
-
-        def on_close
-            @ready = false
-            @connecting = false
-            stop_timer
-
-            # Flush any processing request
-            @response.eof if @response.request
-
-            # Reject any requests waiting on a response
-            @pending_responses.each do |request|
-                request.reject(:disconnected)
-            end
-            @pending_responses.clear
-            
-            # Re-connect if there are pending requests unless we've force closed this connection
-            if !@force_close && !@connection_pending.empty?
-                do_connect
-            end
-        end
 
         def on_connect(transport)
             @connecting = false
-            @ready = true
+            @closed = false
 
             # start tls if connection is encrypted
             use_tls() if @https
@@ -189,86 +169,89 @@ module UV
 
             # Kick off pending requests
             @response.reset!
-            @connection_pending.each do |callback|
-                callback.call
-            end
-            @connection_pending.clear
+            try_send  # we only connect if there is a request waiting
         end
 
-        def reset
-            @connection_pending.clear
-            idle_timeout
-            @pending_requests.each do |request|
-                request.reject(:reset)
+
+        def on_close
+            @closed = true
+            clear_staging = @connecting == @staging_request
+            @connecting = false
+            stop_timer
+
+            # On close may be called before on data
+            @loop.next_tick do
+                if @closing
+                    @closing = false
+                    @connecting = false
+
+                    if @staging_request
+                        process_request
+                    else
+                        next_request
+                    end
+                else
+                    if clear_staging
+                        @staging_request.reject(:connection_refused)
+                    elsif @waiting_response
+                        # Flush any processing request
+                        @response.eof if @response.request
+
+                        # Reject any requests waiting on a response
+                        @waiting_response.reject(:disconnected)
+                    elsif @staging_request
+                        # Try reconnect
+                        process_request
+                    end
+                end
             end
+        end
+
+        def try_send
+            @waiting_response = @staging_request
+            @response.request = @staging_request
+            @staging_request = nil
+
+            @timer.again if @inactivity_timeout > 0
+            @waiting_response.execute(@transport, proc { |err|
+                @transport.close
+                @waiting_response.reject(err)
+            })
+        end
+
+
+        def middleware
+            # TODO:: allow for middle ware
+            []
+        end
+
+        def on_read(data, *args)
+            @timer.again if @inactivity_timeout > 0
+
+            # returns true on error
+            # Response rejects the request
+            if @response.receive(data)
+                @transport.close
+            end
+        end
+
+        def close_connection(after_writing = false)
+            stop_timer
+            reqs = @pending_requests
             @pending_requests.clear
-            @breakpoint = ::Libuv::Q::ResolvedPromise.new(@loop, true)
+            reqs.each do |request|
+                request.reject(:close_connection)
+            end
+            super(after_writing)
         end
 
 
         protected
 
 
-        def do_connect
-            return if @force_close
-            
-            @transport = @loop.tcp
-
-            if @connect_timeout > 0
-                @timer.progress @connect_timeout_method
-                @timer.start @connect_timeout * 1000
-            end
-
-            @connecting = true
-            ::UV.try_connect(@transport, self, @host, @port)
-        end
-
-        def get_connection(callback = nil, &blk)
-            callback ||= blk
-
-            if @connecting
-                @connection_pending << callback
-            elsif !@ready
-                @connection_pending << callback
-                do_connect
-            elsif @transport.closing?
-                @connection_pending << callback
-            else
-                callback.call(@connection)
-            end
-        end
-
-        def connect_timeout
-            @timer.stop
-            @transport.close
-            @connection_pending.clear
-        end
-
         def idle_timeout
             @timer.stop
             @transport.close
-            @pending_responses.each do |request|
-                request.reject(:idle_timeout)
-            end
-            @pending_responses.clear
-        end
-
-        def next_request
-            return if @force_close || @pending_requests.empty?
-
-            request = @pending_requests.shift
-
-            get_connection do
-                @pending_responses << request
-
-                @timer.again if @inactivity_timeout > 0
-
-                # TODO:: have request deal with the error internally
-                request.send(@transport, proc { |err|
-                    @transport.close
-                    request.reject(err)
-                })
-            end
         end
 
         def stop_timer

@@ -14,16 +14,14 @@ module UV
         end
 
         class Response
-            def initialize(requests)
-                @requests = requests
-
+            def initialize
                 @parser = ::HttpParser::Parser.new(self)
                 @state = ::HttpParser::Parser.new_instance
                 @state.type = :response
             end
 
 
-            attr_reader :request
+            attr_accessor :request
 
 
             # Called on connection disconnect
@@ -51,7 +49,6 @@ module UV
             ##
             # Parser Callbacks:
             def on_message_begin(parser)
-                @request = @requests.shift
                 @headers = Headers.new
                 @body = ''
                 @chunked = false
@@ -123,7 +120,7 @@ module UV
             # We need to flush the response on disconnect if content-length is undefined
             # As per the HTTP spec
             def eof
-                if @headers.nil? && @request.headers[:'Content-Length'].nil?
+                if @headers.nil? && @request.headers && @request.headers[:'Content-Length'].nil?
                     on_message_complete(nil)
                 else
                     # Reject if this is a partial response

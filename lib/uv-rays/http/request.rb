@@ -45,7 +45,7 @@ module UV
                 @defer.reject(reason)
             end
 
-            def send(transport, error)
+            def execute(transport, error)
                 head, body = build_request, @options[:body]
 
                 @endpoint.middleware.each do |m|

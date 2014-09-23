@@ -128,47 +128,6 @@ describe UV::HttpEndpoint do
 			expect(@response2[:headers].cookies).to eq({})
 			expect(@response2[:headers].keep_alive).to eq(true)
 		end
-
-		it "should send pipelined requests on the same connection" do
-			@loop.run { |logger|
-				logger.progress do |level, errorid, error|
-					begin
-						@general_failure << "Log called: #{level}: #{errorid}\n#{error.message}\n#{error.backtrace.join("\n")}\n"
-					rescue Exception
-						@general_failure << 'error in logger'
-					end
-				end
-
-				tcp = UV.start_server '127.0.0.1', 3250, HttpServer
-				server = UV::HttpEndpoint.new 'http://127.0.0.1:3250'
-
-				request = server.get(:path => '/', :pipeline => true)
-				request.then(proc { |response|
-					@response = response
-					#@loop.stop
-				}, @request_failure)
-				
-				request2 = server.get(:path => '/', :pipeline => true)
-				request2.then(proc { |response|
-					@response2 = response
-					tcp.close
-					@loop.stop
-				}, @request_failure)
-			}
-
-			expect(@general_failure).to eq([])
-			expect(@response[:headers][:"Content-type"]).to eq('text/html')
-			expect(@response[:headers].http_version).to eq('1.1')
-			expect(@response[:headers].status).to eq(200)
-			expect(@response[:headers].cookies).to eq({})
-			expect(@response[:headers].keep_alive).to eq(true)
-
-			expect(@response2[:headers][:"Content-type"]).to eq('text/html')
-			expect(@response2[:headers].http_version).to eq('1.1')
-			expect(@response2[:headers].status).to eq(200)
-			expect(@response2[:headers].cookies).to eq({})
-			expect(@response2[:headers].keep_alive).to eq(true)
-		end
 	end
 
 	describe 'old http request' do
@@ -240,42 +199,6 @@ describe UV::HttpEndpoint do
 			expect(@response2[:headers].status).to eq(200)
 			expect(@response2[:headers].cookies).to eq({})
 			expect(@response2[:headers].keep_alive).to eq(false)
-		end
-
-		it "should fail to send pipelined requests" do
-			@loop.run { |logger|
-				logger.progress do |level, errorid, error|
-					begin
-						@general_failure << "Log called: #{level}: #{errorid}\n#{error.message}\n#{error.backtrace.join("\n")}\n"
-					rescue Exception
-						@general_failure << 'error in logger'
-					end
-				end
-
-				tcp = UV.start_server '127.0.0.1', 3250, OldServer
-				server = UV::HttpEndpoint.new 'http://127.0.0.1:3250'
-
-				request = server.get(:path => '/', :pipeline => true)
-				request.then(proc { |response|
-					@response = response
-					#@loop.stop
-				}, @request_failure)
-				
-				request2 = server.get(:path => '/', :pipeline => true)
-				request2.then(proc { |response|
-					@response2 = response
-					tcp.close
-					@loop.stop
-				}, @request_failure)
-			}
-
-			expect(@general_failure).to eq([:disconnected])
-			expect(@response[:headers][:"Content-type"]).to eq('text/html')
-			expect(@response[:headers].http_version).to eq('1.0')
-			expect(@response[:headers].status).to eq(200)
-			expect(@response[:headers].cookies).to eq({})
-			expect(@response[:headers].keep_alive).to eq(false)
-			# Response 2 was the general failure
 		end
 	end
 end
