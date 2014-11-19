@@ -15,11 +15,16 @@ module UV
             @indicator  = options[:indicator]
             @size_limit = options[:size_limit]
             @verbose  = options[:verbose] if @size_limit
+            @encoding   = options[:encoding]
 
             raise ArgumentError, 'no indicator provided' unless @indicator
             raise ArgumentError, 'no callback provided' unless @callback
 
             @input = ''
+            if @encoding
+                @input.force_encoding(@encoding)
+                @indicator.force_encoding(@encoding) if @indicator.is_a?(String)
+            end
         end
 
         # Extract takes an arbitrary string of input data and returns an array of
@@ -32,6 +37,7 @@ module UV
         #
         # @param [String] data
         def extract(data)
+            data.force_encoding(@encoding) if @encoding
             @input << data
 
             messages = @input.split(@indicator, -1)
@@ -52,7 +58,7 @@ module UV
                         entities << last[0...result]
                         @input = last[result..-1]
                     else
-                        @input = ''
+                        reset
                         entities << last
                     end
                 else
@@ -84,7 +90,7 @@ module UV
                     # best we can do with a full buffer.
                     @input = @input[-(@indicator.length - 1)..-1]
                 else
-                    @input = ''
+                    reset
                 end
                 raise 'input buffer exceeded limit' if @verbose
             end
@@ -98,13 +104,22 @@ module UV
         # @return [String]
         def flush
             buffer = @input
-            @input = ''
+            reset
             buffer
         end
 
         # @return [Boolean]
         def empty?
             @input.empty?
+        end
+
+
+        private
+
+
+        def reset
+            @input = ''
+            @input.force_encoding(@encoding) if @encoding
         end
     end
 end

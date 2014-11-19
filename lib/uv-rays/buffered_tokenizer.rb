@@ -25,10 +25,16 @@ module UV
             @size_limit = options[:size_limit]
             @min_length = options[:min_length] || 1
             @verbose    = options[:verbose] if @size_limit
+            @encoding   = options[:encoding]
 
             raise ArgumentError, 'no delimiter provided' unless @delimiter
 
             @input = ''
+            if @encoding
+                @input.force_encoding(@encoding)
+                @delimiter.force_encoding(@encoding) if @delimiter.is_a?(String)
+                @indicator.force_encoding(@encoding) if @indicator.is_a?(String)
+            end
         end
 
         # Extract takes an arbitrary string of input data and returns an array of
@@ -41,6 +47,7 @@ module UV
         #
         # @param [String] data
         def extract(data)
+            data.force_encoding(@encoding) if @encoding
             @input << data
 
             # Extract token-delimited entities from the input string with the split command.
@@ -72,7 +79,7 @@ module UV
                     # delimiter it would be unfortunate
                     @input = @input[-(@indicator.length - 1)..-1]
                 else
-                    @input = ''
+                    reset
                 end
                 raise 'input buffer exceeded limit' if @verbose
             end
@@ -89,13 +96,22 @@ module UV
         # @return [String]
         def flush
             buffer = @input
-            @input = ''
+            reset
             buffer
         end
 
         # @return [Boolean]
         def empty?
             @input.empty?
+        end
+
+
+        private
+
+
+        def reset
+            @input = ''
+            @input.force_encoding(@encoding) if @encoding
         end
     end
 end
