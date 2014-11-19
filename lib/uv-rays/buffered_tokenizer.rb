@@ -23,6 +23,7 @@ module UV
             @delimiter  = options[:delimiter]
             @indicator  = options[:indicator]
             @size_limit = options[:size_limit]
+            @min_length = options[:min_length] || 1
             @verbose    = options[:verbose] if @size_limit
 
             raise ArgumentError, 'no delimiter provided' unless @delimiter
@@ -75,6 +76,9 @@ module UV
                 end
                 raise 'input buffer exceeded limit' if @verbose
             end
+
+            # Check min-length is met
+            entities.select! {|msg| msg.length >= @min_length}
 
             return entities
         end

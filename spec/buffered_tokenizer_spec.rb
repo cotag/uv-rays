@@ -9,6 +9,12 @@ describe UV::BufferedTokenizer do
             })
         end
 
+        it "should not return empty messages" do
+            msg1 = "\n\rtest\n\r\n\rwhoa\n\r\n\r"
+
+            result = @buffer.extract(msg1)
+            expect(result).to eq(['test', 'whoa'])
+        end
 
         it "should not return anything when a complete message is not available" do
             msg1 = "test"
