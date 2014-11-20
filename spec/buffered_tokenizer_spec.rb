@@ -5,7 +5,8 @@ describe UV::BufferedTokenizer do
 
         before :each do
             @buffer = UV::BufferedTokenizer.new({
-                delimiter: "\n\r"
+                delimiter: "\n\r",
+                encoding: "ASCII-8BIT"
             })
         end
 

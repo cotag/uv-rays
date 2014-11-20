@@ -8,7 +8,8 @@ describe UV::AbstractTokenizer do
                 return 4 if data.length > 3
                 return false
             },
-            size_limit: 10
+            size_limit: 10,
+            encoding: "ASCII-8BIT"
         })
     end
 
