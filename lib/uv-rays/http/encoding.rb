@@ -24,6 +24,16 @@ module UV
                 end
             end
 
+            if ''.respond_to?(:bytesize)
+                def bytesize(string)
+                    string.bytesize
+                end
+            else
+                def bytesize(string)
+                    string.size
+                end
+            end
+
             # Map all header keys to a downcased string version
             def munge_header_keys(head)
                 head.inject({}) { |h, (k, v)| h[k.to_s.downcase] = v; h }
