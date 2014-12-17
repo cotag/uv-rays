@@ -316,6 +316,8 @@ module UV
         # Ensures the current timer, if any, is still
         # accurate by checking the head of the schedule
         def check_timer
+            @loop.update_time
+            
             existing = @next
             schedule = @scheduled.first
             @next = schedule.nil? ? nil : schedule.next_scheduled
