@@ -27,7 +27,7 @@ module UV
     class Scheduler
 
         def self.parse_in(o, quiet = false)
-            # if o is an integer we are looking at seconds
+            # if o is an integer we are looking at ms
             o.is_a?(String) ? parse_duration(o, quiet) : o
         end
 
