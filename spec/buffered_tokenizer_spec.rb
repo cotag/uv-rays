@@ -173,6 +173,77 @@ describe UV::BufferedTokenizer do
         end
     end
 
+    describe 'indicator with length' do
+        before :each do
+            @buffer = UV::BufferedTokenizer.new({
+                indicator: "GO",
+                msg_length: 4 # length without the indicator
+            })
+        end
+
+        it "should not return anything when a complete message is not available" do
+            msg1 = "GO123"
+
+            result = @buffer.extract(msg1)
+            expect(result).to eq([])
+        end
+
+        it "should not return anything when the messages is empty" do
+            msg1 = ""
+
+            result = @buffer.extract(msg1)
+            expect(result).to eq([])
+        end
+
+        it "should tokenize messages where the data is a complete message" do
+            msg1 = "GO1234"
+
+            result = @buffer.extract(msg1)
+            expect(result).to eq(['1234'])
+        end
+
+        it "should discard data that is not relevant" do
+            msg1 = "1234-GO1234"
+
+            result = @buffer.extract(msg1)
+            expect(result).to eq(['1234'])
+        end
+
+        it "should return multiple complete messages" do
+            msg1 = "GO1234GOhome"
+
+            result = @buffer.extract(msg1)
+            expect(result).to eq(['1234', 'home'])
+        end
+
+        it "should discard data between multiple complete messages" do
+            msg1 = "1234-GO123412345-GOhome"
+
+            result = @buffer.extract(msg1)
+            expect(result).to eq(['1234', 'home'])
+        end
+
+        it "should tokenize messages where the indicator is split" do
+            msg1 = "GOtestG"
+            msg2 = "Owhoa"
+
+            result = @buffer.extract(msg1)
+            expect(result).to eq(['test'])
+            result = @buffer.extract(msg2)
+            expect(result).to eq(['whoa'])
+        end
+
+        it "should tokenize messages where the indicator is split and there is discard data" do
+            msg1 = "GOtest\n\r1234G"
+            msg2 = "Owhoa\n"
+
+            result = @buffer.extract(msg1)
+            expect(result).to eq(['test'])
+            result = @buffer.extract(msg2)
+            expect(result).to eq(['whoa'])
+        end
+    end
+
     describe 'buffer size limit with indicator' do
         before :each do
             @buffer = UV::BufferedTokenizer.new({
