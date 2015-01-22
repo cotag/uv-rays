@@ -31,7 +31,6 @@ module UV
             if @delimiter
                 @extract_method = method(:delimiter_extract)
             elsif @indicator && @msg_length
-                @length_index = @msg_length - 1
                 @extract_method = method(:length_extract)
             else
                 raise ArgumentError, 'no delimiter provided'
@@ -112,10 +111,10 @@ module UV
 
             # Select messages of the right size then remove junk data
             messages.select! { |msg| msg.length >= @msg_length ? true : false }
-            messages.map! { |msg| msg[0..@length_index] }
+            messages.map! { |msg| msg[0...@msg_length] }
 
             if last.length >= @msg_length
-                messages << last[0..@length_index]
+                messages << last[0...@msg_length]
                 @input = last[@msg_length..-1]
             else
                 reset("#{@indicator}#{last}")
