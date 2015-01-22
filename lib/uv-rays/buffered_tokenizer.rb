@@ -118,7 +118,7 @@ module UV
                 messages << last[0..@length_index]
                 @input = last[@msg_length..-1]
             else
-                @input = "#{@indicator}#{last}"
+                reset("#{@indicator}#{last}")
             end
 
             check_buffer_limits
@@ -151,8 +151,8 @@ module UV
             end
         end
 
-        def reset
-            @input = ''
+        def reset(value = '')
+            @input = value
             @input.force_encoding(@encoding) if @encoding
         end
     end
