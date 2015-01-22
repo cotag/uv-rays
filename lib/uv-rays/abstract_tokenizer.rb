@@ -47,7 +47,8 @@ module UV
 
                 entities = []
                 messages.each do |msg|
-                    entities << msg if @callback.call(msg)
+                    result = @callback.call(msg)
+                    entities << msg[0...result] if result
                 end
 
                 # Check if buffering is required

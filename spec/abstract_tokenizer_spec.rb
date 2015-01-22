@@ -41,6 +41,14 @@ describe UV::AbstractTokenizer do
         expect(result).to eq(['1234', '1234'])
         expect(@buffer.flush).to eq('56')    # as we've indicated a message length of 4
     end
+
+    it "should not return junk data" do
+        msg1 = "Start123456Start123456"
+
+        result = @buffer.extract(msg1)
+        expect(result).to eq(['1234', '1234'])
+        expect(@buffer.flush).to eq('56')    # as we've indicated a message length of 4
+    end
     
     it "should tokenize messages where the indicator is split" do
         msg1 = "123Star"
