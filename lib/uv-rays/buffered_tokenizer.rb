@@ -15,6 +15,7 @@
 #     end
 module UV
     class BufferedTokenizer
+        DEFAULT_ENCODING = 'ASCII-8BIT'.freeze
 
         attr_accessor :delimiter, :indicator, :size_limit, :verbose
 
@@ -26,11 +27,14 @@ module UV
             @size_limit = options[:size_limit]
             @min_length = options[:min_length] || 1
             @verbose    = options[:verbose] if @size_limit
-            @encoding   = options[:encoding]
+            @encoding   = options[:encoding] || DEFAULT_ENCODING
 
             if @delimiter
+                @delimiter.force_encoding(@encoding) if @delimiter.is_a?(String)
+                @indicator.force_encoding(@encoding) if @indicator.is_a?(String)
                 @extract_method = method(:delimiter_extract)
             elsif @indicator && @msg_length
+                @indicator.force_encoding(@encoding) if @indicator.is_a?(String)
                 @extract_method = method(:length_extract)
             else
                 raise ArgumentError, 'no delimiter provided'
@@ -49,7 +53,7 @@ module UV
         #
         # @param [String] data
         def extract(data)
-            data.force_encoding(@encoding) if @encoding
+            data.force_encoding(@encoding)
             @input << data
 
             @extract_method.call
@@ -143,16 +147,14 @@ module UV
 
         def init_buffer
             @input = ''
-            if @encoding
-                @input.force_encoding(@encoding)
-                @delimiter.force_encoding(@encoding) if @delimiter.is_a?(String)
-                @indicator.force_encoding(@encoding) if @indicator.is_a?(String)
-            end
+            @input.force_encoding(@encoding)
+            @delimiter.force_encoding(@encoding) if @delimiter.is_a?(String)
+            @indicator.force_encoding(@encoding) if @indicator.is_a?(String)
         end
 
         def reset(value = '')
             @input = value
-            @input.force_encoding(@encoding) if @encoding
+            @input.force_encoding(@encoding)
         end
     end
 end
