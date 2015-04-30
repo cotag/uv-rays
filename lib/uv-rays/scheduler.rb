@@ -334,7 +334,7 @@ module UV
                     in_time = @next - @loop.now
 
                     # Ensure there are never negative start times
-                    if in_time > 5
+                    if in_time > 3
                         @timer.start(in_time)
                     else
                         # Effectively next tick
@@ -353,7 +353,7 @@ module UV
 
                 # execute schedules that are within 5ms of this event
                 # Basic timer coalescing..
-                now = @loop.now + 5
+                now = @loop.now + 3
                 while @scheduled.first && @scheduled.first.next_scheduled <= now
                     schedule = @scheduled.shift
                     @schedules.delete(schedule)
