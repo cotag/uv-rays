@@ -1,11 +1,10 @@
 language: ruby
 rvm:
-  - "2.0.0"
+  - "2.1"
+  - "2.2"
   - ruby-head
-  - rbx
-  - jruby-19mode
+  - rbx-2
+  - jruby-head
 branches:
   only:
     - master
-before_install:
-  - sudo apt-get install subversion
