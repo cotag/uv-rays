@@ -351,7 +351,7 @@ module UV
                 @schedules.delete(schedule)
                 schedule.trigger
 
-                # execute schedules that are within 5ms of this event
+                # execute schedules that are within 3ms of this event
                 # Basic timer coalescing..
                 now = @loop.now + 3
                 while @scheduled.first && @scheduled.first.next_scheduled <= now
