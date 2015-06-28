@@ -50,7 +50,7 @@ module UV
         attr_reader :inactivity_timeout
 
         def initialize(uri, options = {})
-            @inactivity_timeout  = options[:inactivity_timeout] ||= 10   # default connection inactivity (post-setup) timeout
+            @inactivity_timeout  = options[:inactivity_timeout] ||= 10000   # default connection inactivity (post-setup) timeout
 
 
             uri = uri.kind_of?(Addressable::URI) ? uri : Addressable::URI::parse(uri.to_s)
@@ -164,7 +164,7 @@ module UV
             stop_timer
             if @inactivity_timeout > 0
                 @timer.progress @idle_timeout_method
-                @timer.start @inactivity_timeout * 1000
+                @timer.start @inactivity_timeout
             end
 
             # Kick off pending requests
