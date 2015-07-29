@@ -6,7 +6,6 @@ module UV
 
             @klass = klass
             @args = args
-            @accept_method = method(:client_accepted)
 
             if server == port && port.is_a?(Fixnum)
                 # We are opening a socket descriptor
@@ -28,11 +27,7 @@ module UV
         private
 
 
-        def new_connection(server)
-            server.accept @accept_method
-        end
-
-        def client_accepted(client)
+        def new_connection(client)
             # prevent buffering
             client.enable_nodelay
 

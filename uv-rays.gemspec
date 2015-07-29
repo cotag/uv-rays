@@ -13,7 +13,7 @@ Gem::Specification.new do |gem|
     gem.required_ruby_version = '>= 1.9.2'
     gem.require_paths = ["lib"]
 
-    gem.add_runtime_dependency     'libuv', '>= 0.11.20'
+    gem.add_runtime_dependency     'libuv', '>= 2.0.0'
     gem.add_runtime_dependency     'bisect'
     gem.add_runtime_dependency     'tzinfo'
     gem.add_runtime_dependency     'cookiejar'
