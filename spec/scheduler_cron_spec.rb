@@ -58,12 +58,12 @@ describe UV::Scheduler::CronLine do
 
         it 'rejects invalid weekday expressions' do
 
-            expect  { cl '0 17 * * MON_FRI' }.to raise_error
+            expect  { cl '0 17 * * MON_FRI' }.to raise_error(ArgumentError)
                 # underline instead of dash
 
-            expect  { cl '* * * * 9' }.to raise_error
-            expect  { cl '* * * * 0-12' }.to raise_error
-            expect  { cl '* * * * BLABLA' }.to raise_error
+            expect  { cl '* * * * 9' }.to raise_error(ArgumentError)
+            expect  { cl '* * * * 0-12' }.to raise_error(ArgumentError)
+            expect  { cl '* * * * BLABLA' }.to raise_error(ArgumentError)
         end
 
         it 'rejects invalid cronlines' do
@@ -83,8 +83,8 @@ describe UV::Scheduler::CronLine do
                 '* * * * * * America/New_York',
                 [ nil, nil, nil, nil, nil, nil, nil, 'America/New_York' ])
 
-            expect  { cl '* * * * * NotATimeZone' }.to raise_error
-            expect  { cl '* * * * * * NotATimeZone' }.to raise_error
+            expect  { cl '* * * * * NotATimeZone' }.to raise_error(ArgumentError)
+            expect  { cl '* * * * * * NotATimeZone' }.to raise_error(ArgumentError)
         end
 
         it 'interprets cron strings with / (slashes) correctly' do
