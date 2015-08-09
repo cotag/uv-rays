@@ -8,3 +8,4 @@ rvm:
 branches:
   only:
     - master
+sudo: false
