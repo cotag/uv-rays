@@ -77,11 +77,12 @@ module UV
                 request_header << encode_headers(head)
                 request_header << CRLF
 
-                transport.write(request_header).catch error
-
                 if body
+                    request_header << body
                     transport.write(body).catch error
                 elsif file
+                    transport.write(request_header).catch error
+
                     # Send file
                     fileRef = @endpoint.loop.file file, File::RDONLY
                     fileRef.progress do
@@ -93,6 +94,8 @@ module UV
                         end
                     end
                     fileRef.catch error
+                else
+                    transport.write(request_header).catch error
                 end
             end
 

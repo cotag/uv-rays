@@ -119,7 +119,7 @@ module UV
 
             def encode_cookie(cookie)
                 if cookie.is_a? Hash
-                    cookie.inject('') { |result, (k, v)| result <<    encode_param(k, v) + ";" }
+                    cookie.inject('') { |result, (k, v)| result << encode_param(k, v) + ';' }
                 else
                     cookie
                 end
