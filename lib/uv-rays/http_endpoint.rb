@@ -242,7 +242,7 @@ module UV
             reqs.each do |request|
                 request.reject(:close_connection)
             end
-            super(after_writing)
+            super(after_writing) if @transport
         end
 
 
