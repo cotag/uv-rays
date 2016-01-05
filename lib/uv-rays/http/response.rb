@@ -110,11 +110,14 @@ module UV
             end
 
             def on_message_complete(parser)
-                @request.resolve(@body)
+                req = @request
+                bod = @body
 
                 # Clean up memory
                 @request = nil
                 @body = nil
+
+                req.resolve(self, bod)
             end
 
             # We need to flush the response on disconnect if content-length is undefined

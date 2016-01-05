@@ -20,6 +20,33 @@ module HttpServer
 	end
 end
 
+module NTLMServer
+	def post_init
+		@parser = ::HttpParser::Parser.new(self)
+        @state = ::HttpParser::Parser.new_instance
+        @state.type = :request
+
+        @req = 0
+	end
+
+	def on_message_complete(parser)
+		if @req == 0
+			@state = ::HttpParser::Parser.new_instance
+			write("HTTP/1.1 401 Unauthorized\r\nWWW-Authenticate: NTLM TlRMTVNTUAACAAAAEgASADgAAAAFgokCuEPycVw6htsAAAAAAAAAAK4ArgBKAAAABgOAJQAAAA9SAEEAQgBPAE4ARQBUAE8AQwACABIAUgBBAEIATwBOAEUAVABPAEMAAQAUAFMAWQBQAFYAMQA5ADkAMAA1ADUABAAcAG8AYwAuAHIAYQBiAG8AbgBlAHQALgBjAG8AbQADADIAUwBZAFAAVgAxADkAOQAwADUANQAuAG8AYwAuAHIAYQBiAG8AbgBlAHQALgBjAG8AbQAFABYAcgBhAGIAbwBuAGUAdAAuAGMAbwBtAAcACACcZNzCwkbRAQAAAAA=\r\nContent-type: text/html\r\nContent-length: 0\r\n\r\n")
+		else
+			write("HTTP/1.1 200 OK\r\nContent-type: text/html\r\nContent-length: 1\r\n\r\ny")
+		end
+		@req += 1
+	end
+
+	def on_read(data, connection)
+		if @parser.parse(@state, data)
+            p 'parse error'
+            p @state.error
+        end
+	end
+end
+
 module OldServer
 	def post_init
 		@parser = ::HttpParser::Parser.new(self)
@@ -199,6 +226,41 @@ describe UV::HttpEndpoint do
 			expect(@response2[:headers].status).to eq(200)
 			expect(@response2[:headers].cookies).to eq({})
 			expect(@response2[:headers].keep_alive).to eq(false)
+		end
+	end
+
+	describe 'NTLM auth support' do
+		it "should perform NTLM auth transparently" do
+			@loop.run { |logger|
+				logger.progress do |level, errorid, error|
+					begin
+						@general_failure << "Log called: #{level}: #{errorid}\n#{error.message}\n#{error.backtrace.join("\n")}\n"
+					rescue Exception
+						@general_failure << 'error in logger'
+					end
+				end
+
+				tcp = UV.start_server '127.0.0.1', 3250, NTLMServer
+				server = UV::HttpEndpoint.new 'http://127.0.0.1:3250', ntlm: {
+					user: 'username',
+					password: 'password',
+					domain: 'domain'
+				}
+
+				request = server.get(path: '/')
+				request.then(proc { |response|
+					@response = response
+					@loop.stop
+				}, @request_failure)
+			}
+
+			expect(@general_failure).to eq([])
+			expect(@response[:headers][:"Content-type"]).to eq('text/html')
+			expect(@response[:headers].http_version).to eq('1.1')
+			expect(@response[:headers].status).to eq(200)
+			expect(@response[:headers].cookies).to eq({})
+			expect(@response[:headers].keep_alive).to eq(true)
+			expect(@response[:body]).to eq('y')
 		end
 	end
 end

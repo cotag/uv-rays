@@ -11,7 +11,7 @@ module UV
 
             attr_reader :path
             attr_reader :method
-            attr_reader :headers
+            attr_reader :headers, :options
 
 
             def cookies_hash
@@ -23,22 +23,32 @@ module UV
             end
             
 
-            def initialize(endpoint, options)
+            def initialize(endpoint, options, using_ntlm)
                 super(endpoint.loop, endpoint.loop.defer)
 
                 @options = options
                 @endpoint = endpoint
+                @ntlm_retries = using_ntlm ? 0 : nil
 
                 @path = options[:path]
                 @method = options[:method]
                 @uri = "#{endpoint.scheme}#{encode_host(endpoint.host, endpoint.port)}#{@path}"
             end
 
-            def resolve(response)
-                @defer.resolve({
-                    headers: @headers,
-                    body: response
-                })
+            def resolve(response, body)
+                if @ntlm_retries && @headers.status == 401 && @headers[:"WWW-Authenticate"] && @ntlm_retries < 3
+                    @options[:headers][:Authorization] = @endpoint.ntlm_auth_header(@headers[:"WWW-Authenticate"])
+                    @ntlm_retries += 1
+
+                    response.request = self
+                    execute(*@exec_params)
+                else
+                    @exec_params = nil
+                    @defer.resolve({
+                        headers: @headers,
+                        body: body
+                    })
+                end
             end
 
             def reject(reason)
@@ -47,6 +57,7 @@ module UV
 
             def execute(transport, error)
                 head, body = build_request, @options[:body]
+                @exec_params = [transport, error]
 
                 @endpoint.middleware.each do |m|
                     head, body = m.request(self, head, body) if m.respond_to?(:request)
@@ -79,7 +90,7 @@ module UV
 
                 if body
                     request_header << body
-                    transport.write(body).catch error
+                    transport.write(request_header).catch error
                 elsif file
                     transport.write(request_header).catch error
 

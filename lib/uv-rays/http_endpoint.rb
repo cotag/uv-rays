@@ -1,3 +1,6 @@
+require 'rubyntlm'
+
+
 module UV
     class CookieJar
         def initialize
@@ -51,7 +54,7 @@ module UV
 
         def initialize(uri, options = {})
             @inactivity_timeout  = options[:inactivity_timeout] ||= 10000   # default connection inactivity (post-setup) timeout
-
+            @ntlm_creds = options[:ntlm]
 
             uri = uri.kind_of?(Addressable::URI) ? uri : Addressable::URI::parse(uri.to_s)
             @https = uri.scheme == "https"
@@ -102,7 +105,7 @@ module UV
             options[:method] = method
 
             # Setup the request with callbacks
-            request = Http::Request.new(self, options)
+            request = Http::Request.new(self, options, @ntlm_creds)
             request.then(proc { |result|
                 @waiting_response = nil
 
@@ -212,6 +215,13 @@ module UV
             @response.request = @staging_request
             @staging_request = nil
 
+            if @ntlm_creds
+                opts = @waiting_response.options
+                opts[:headers] ||= {}
+                opts = opts[:headers]
+                opts[:Authorization] = ntlm_auth_header
+            end
+
             @timer.again if @inactivity_timeout > 0
             @waiting_response.execute(@transport, proc { |err|
                 @transport.close
@@ -245,6 +255,29 @@ module UV
             super(after_writing) if @transport
         end
 
+        def ntlm_auth_header(challenge = nil)
+            if @ntlm_auth && challenge.nil?
+                return @ntlm_auth
+            elsif challenge
+                scheme, param_str = parse_ntlm_challenge_header(challenge)
+                if param_str.nil?
+                    @ntlm_auth = nil
+                    return ntlm_auth_header(creds)
+                else
+                    t2 = Net::NTLM::Message.decode64(param_str)
+                    t3 = t2.response(@ntlm_creds, ntlmv2: true)
+                    @ntlm_auth = "NTLM #{t3.encode64}"
+                    return @ntlm_auth
+                end
+            else
+                domain = @ntlm_creds[:domain]
+                t1 = Net::NTLM::Message::Type1.new()
+                t1.domain = domain if domain
+                @ntlm_auth = "NTLM #{t1.encode64}"
+                return @ntlm_auth
+            end
+        end
+
 
         protected
 
@@ -256,6 +289,12 @@ module UV
 
         def stop_timer
             @timer.stop unless @timer.nil?
+        end
+
+        def parse_ntlm_challenge_header(challenge)
+            scheme, param_str = challenge.scan(/\A(\S+)(?:\s+(.*))?\z/)[0]
+            return nil if scheme.nil?
+            return scheme, param_str
         end
     end
 end
