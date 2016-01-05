@@ -250,6 +250,7 @@ describe UV::HttpEndpoint do
 				request = server.get(path: '/')
 				request.then(proc { |response|
 					@response = response
+					tcp.close
 					@loop.stop
 				}, @request_failure)
 			}
