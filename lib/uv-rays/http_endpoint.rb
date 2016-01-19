@@ -178,6 +178,7 @@ module UV
 
         def on_close
             @closed = true
+            @ntlm_auth = nil
             clear_staging = @connecting == @staging_request
             @connecting = false
             stop_timer
@@ -262,7 +263,7 @@ module UV
                 scheme, param_str = parse_ntlm_challenge_header(challenge)
                 if param_str.nil?
                     @ntlm_auth = nil
-                    return ntlm_auth_header(creds)
+                    return ntlm_auth_header(@ntlm_creds)
                 else
                     t2 = Net::NTLM::Message.decode64(param_str)
                     t3 = t2.response(@ntlm_creds, ntlmv2: true)

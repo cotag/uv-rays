@@ -36,12 +36,20 @@ module UV
             end
 
             def resolve(response, body)
-                if @ntlm_retries && @headers.status == 401 && @headers[:"WWW-Authenticate"] && @ntlm_retries < 3
+                if @ntlm_retries == 0 && @headers.status == 401 && @headers[:"WWW-Authenticate"]
                     @options[:headers][:Authorization] = @endpoint.ntlm_auth_header(@headers[:"WWW-Authenticate"])
                     @ntlm_retries += 1
 
                     response.request = self
                     execute(*@exec_params)
+                elsif @ntlm_retries > 0 && @headers.status == 401
+                    @exec_params = nil
+                    # Force a reconnect
+                    @headers.keep_alive = false
+                    @defer.resolve({
+                        headers: @headers,
+                        body: body
+                    })
                 else
                     @exec_params = nil
                     @defer.resolve({
