@@ -42,15 +42,11 @@ module UV
 
                     response.request = self
                     execute(*@exec_params)
-                elsif @ntlm_retries > 0 && @headers.status == 401
-                    @exec_params = nil
-                    # Force a reconnect
-                    @headers.keep_alive = false
-                    @defer.resolve({
-                        headers: @headers,
-                        body: body
-                    })
                 else
+                    if @ntlm_retries == 1
+                        @endpoint.clear_ntlm_header
+                    end
+
                     @exec_params = nil
                     @defer.resolve({
                         headers: @headers,

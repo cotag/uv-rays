@@ -279,6 +279,10 @@ module UV
             end
         end
 
+        def clear_ntlm_header
+            @ntlm_auth = nil
+        end
+
 
         protected
 
