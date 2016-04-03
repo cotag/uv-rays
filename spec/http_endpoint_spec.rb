@@ -277,8 +277,8 @@ describe UV::HttpEndpoint do
 					end
 				end
 
-				tcp = UV.start_server '127.0.0.1', 3250, OldServer
-				server = UV::HttpEndpoint.new 'http://127.0.0.1:3250'
+				tcp = UV.start_server '127.0.0.1', 3251, OldServer
+				server = UV::HttpEndpoint.new 'http://127.0.0.1:3251'
 
 				request = server.get(:path => '/')
 				request.then(proc { |response|
@@ -320,8 +320,8 @@ describe UV::HttpEndpoint do
 					end
 				end
 
-				tcp = UV.start_server '127.0.0.1', 3250, NTLMServer
-				server = UV::HttpEndpoint.new 'http://127.0.0.1:3250', ntlm: {
+				tcp = UV.start_server '127.0.0.1', 3252, NTLMServer
+				server = UV::HttpEndpoint.new 'http://127.0.0.1:3252', ntlm: {
 					user: 'username',
 					password: 'password',
 					domain: 'domain'
@@ -356,8 +356,8 @@ describe UV::HttpEndpoint do
 					end
 				end
 
-				tcp = UV.start_server '127.0.0.1', 3250, BrokenServer
-				server = UV::HttpEndpoint.new 'http://127.0.0.1:3250'
+				tcp = UV.start_server '127.0.0.1', 6353, BrokenServer
+				server = UV::HttpEndpoint.new 'http://127.0.0.1:6353'
 
 				@response = nil
 				request = server.get(:path => '/')
