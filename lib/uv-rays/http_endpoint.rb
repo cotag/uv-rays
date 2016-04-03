@@ -1,5 +1,4 @@
-require 'rubyntlm'
-
+require 'uri'
 
 module UV
     class CookieJar
@@ -28,20 +27,29 @@ module UV
         end
     end # CookieJar
 
+    class HttpEndpoint
+        class Connection < OutboundConnection
+            def initialize(host, port, tls, client)
+                @client = client
+                super(host, port)
+                use_tls(client.tls_options) if tls
+            end
 
-    class HttpEndpoint < OutboundConnection
-        TRANSFER_ENCODING="TRANSFER_ENCODING".freeze
-        CONTENT_ENCODING="CONTENT_ENCODING".freeze
-        CONTENT_LENGTH="CONTENT_LENGTH".freeze
-        CONTENT_TYPE="CONTENT_TYPE".freeze
-        LAST_MODIFIED="LAST_MODIFIED".freeze
-        KEEP_ALIVE="CONNECTION".freeze
-        LOCATION="LOCATION".freeze
-        HOST="HOST".freeze
-        ETAG="ETAG".freeze
-        CRLF="\r\n".freeze
-        HTTPS="https://".freeze
-        HTTP="http://".freeze
+            def on_read(data, *args) # user to define
+                @client.data_received(data)
+            end
+
+            def post_init(*args)
+            end
+
+            def on_connect(transport) # user to define
+                @client.connection_ready
+            end
+
+            def on_close # user to define
+                @client.connection_closed
+            end
+        end
 
 
         @@defaults = {
@@ -49,46 +57,35 @@ module UV
             :keepalive => true
         }
 
-        attr_reader :scheme, :host, :port, :using_tls, :loop, :cookiejar
-        attr_reader :inactivity_timeout
 
-        def initialize(uri, options = {})
-            @inactivity_timeout  = options[:inactivity_timeout] ||= 10000   # default connection inactivity (post-setup) timeout
-            @ntlm_creds = options[:ntlm]
+        def initialize(host, options = {})
+            @queue = []
+            @parser = Http::Parser.new
+            @thread = Libuv::Loop.current || Libuv::Loop.default
+            @connection = nil
 
-            uri = uri.kind_of?(Addressable::URI) ? uri : Addressable::URI::parse(uri.to_s)
-            @https = uri.scheme == "https"
-            uri.port ||= (@https ? 443 : 80)
-            @scheme = @https ? HTTPS : HTTP
-
-
-            @loop = Libuv::Loop.current || Libuv::Loop.default
-            @host = uri.host
-            @port = uri.port
-            #@transport = @loop.tcp
-
-            # State flags
-            @closed = true
-            @closing = false
-            @connecting = false
-
-            # Current requests
-            @pending_requests = []
-            @staging_request = nil
-            @waiting_response = nil
-            @cookiejar = CookieJar.new
-
-            # Callback methods
+            @options = @@defaults.merge(options)
+            @tls_options = options[:tls_options] || {}
+            @inactivity_timeout = options[:inactivity_timeout] || 10000
             @idle_timeout_method = method(:idle_timeout)
 
-            # Manages the tokenising of response from the input stream
-            @response = Http::Response.new
-
-            # Timeout timer
             if @inactivity_timeout > 0
-                @timer = @loop.timer
+                @timer = @thread.timer
             end
+
+            uri = URI.parse host
+            @port = uri.port
+            @host = uri.host
+            @scheme = uri.scheme
+            @tls = @scheme == 'https'
+            @cookiejar = CookieJar.new
+            @middleware = []
         end
+
+
+        attr_reader :inactivity_timeout, :thread
+        attr_reader :tls_options, :port, :host, :tls, :scheme
+        attr_reader :cookiejar, :middleware
 
 
         def get      options = {}, &blk;  request(:get,     options, &blk); end
@@ -101,205 +98,106 @@ module UV
 
 
         def request(method, options = {}, &blk)
-            options = @@defaults.merge(options)
+            options = @options.merge(options)
             options[:method] = method
 
             # Setup the request with callbacks
-            request = Http::Request.new(self, options, @ntlm_creds)
-            request.then(proc { |result|
-                @waiting_response = nil
-
-                if @closed || result[:headers].keep_alive
-                    next_request
+            request = Http::Request.new(self, options)
+            request.then(proc { |response|
+                if response.keep_alive
+                    restart_timer
                 else
-                    @closing = true
-                    @transport.close
+                    close_connection
                 end
 
-                result
-            }, proc { |err|
-                @waiting_response = nil
                 next_request
 
-                ::Libuv::Q.reject(@loop, err)
+                response
+            }, proc { |err|
+                close_connection
+                next_request
+                ::Libuv::Q.reject(@thread, err)
             })
 
-            ##
-            # TODO:: Add response middleware here
-            request.then blk if blk
-
-            # Add to pending requests and schedule using the breakpoint
-            @pending_requests << request
-            if !@waiting_response && !@staging_request
+            @queue.unshift(request)
+            if @queue.length == 1 && @parser.request.nil?
                 next_request
             end
 
-            # return the request
             request
         end
 
+        # Callbacks
+        def connection_ready
+            if @queue.length > 0
+                restart_timer
+                next_request
+            else
+                close_connection
+            end
+        end
+
+        def connection_closed
+            @connection = nil
+            stop_timer
+
+            @parser.eof
+        end
+
+        def data_received(data)
+            restart_timer
+            close_connection if @parser.received(data)
+        end
+
+
+        private
+
 
         def next_request
-            @staging_request = @pending_requests.shift
-            process_request unless @staging_request.nil?
-        end
+            return if @parser.request || @queue.length == 0
 
-        def process_request
-            if @closed && !@connecting
-                @transport = @loop.tcp
+            if @connection
+                req = @queue.pop
+                @parser.new_request(req)
 
-                @connecting = @staging_request
-                ::UV.try_connect(@transport, self, @host, @port)
-            elsif !@closing
-                try_send
-            end
-        end
-
-
-        def on_connect(transport)
-            @connecting = false
-            @closed = false
-
-            # start tls if connection is encrypted
-            use_tls() if @https
-
-            # Update timeouts
-            stop_timer
-            if @inactivity_timeout > 0
-                @timer.progress @idle_timeout_method
-                @timer.start @inactivity_timeout
-            end
-
-            # Kick off pending requests
-            @response.reset!
-            try_send  # we only connect if there is a request waiting
-        end
-
-
-        def on_close
-            @closed = true
-            @ntlm_auth = nil
-            clear_staging = @connecting == @staging_request
-            @connecting = false
-            stop_timer
-
-            # On close may be called before on data
-            @loop.next_tick do
-                if @closing
-                    @closing = false
-                    @connecting = false
-
-                    if @staging_request
-                        process_request
-                    else
-                        next_request
-                    end
-                else
-                    if clear_staging
-                        @staging_request.reject(:connection_refused)
-                    elsif @waiting_response
-                        # Flush any processing request
-                        @response.eof if @response.request
-
-                        # Reject any requests waiting on a response
-                        @waiting_response.reject(:disconnected)
-                    elsif @staging_request
-                        # Try reconnect
-                        process_request
-                    end
-                end
-            end
-        end
-
-        def try_send
-            @waiting_response = @staging_request
-            @response.request = @staging_request
-            @staging_request = nil
-
-            if @ntlm_creds
-                opts = @waiting_response.options
-                opts[:headers] ||= {}
-                opts = opts[:headers]
-                opts[:Authorization] = ntlm_auth_header
-            end
-
-            @timer.again if @inactivity_timeout > 0
-            @waiting_response.execute(@transport, proc { |err|
-                @transport.close
-                @waiting_response.reject(err)
-            })
-        end
-
-
-        def middleware
-            # TODO:: allow for middle ware
-            []
-        end
-
-        def on_read(data, *args)
-            @timer.again if @inactivity_timeout > 0
-
-            # returns true on error
-            # Response rejects the request
-            if @response.receive(data)
-                @transport.close
-            end
-        end
-
-        def close_connection(after_writing = false)
-            stop_timer
-            reqs = @pending_requests
-            @pending_requests.clear
-            reqs.each do |request|
-                request.reject(:close_connection)
-            end
-            super(after_writing) if @transport
-        end
-
-        def ntlm_auth_header(challenge = nil)
-            if @ntlm_auth && challenge.nil?
-                return @ntlm_auth
-            elsif challenge
-                scheme, param_str = parse_ntlm_challenge_header(challenge)
-                if param_str.nil?
-                    @ntlm_auth = nil
-                    return ntlm_auth_header(@ntlm_creds)
-                else
-                    t2 = Net::NTLM::Message.decode64(param_str)
-                    t3 = t2.response(@ntlm_creds, ntlmv2: true)
-                    @ntlm_auth = "NTLM #{t3.encode64}"
-                    return @ntlm_auth
-                end
+                req.execute(@connection)
             else
-                domain = @ntlm_creds[:domain]
-                t1 = Net::NTLM::Message::Type1.new()
-                t1.domain = domain if domain
-                @ntlm_auth = "NTLM #{t1.encode64}"
-                return @ntlm_auth
+                new_connection
             end
         end
 
-        def clear_ntlm_header
-            @ntlm_auth = nil
+        def new_connection
+            if @queue.length > 0 && @connection.nil?
+                @connection = Connection.new(@host, @port, @tls, self)
+                start_timer
+            end
+            @connection
+        end
+
+        def close_connection
+            return if @connection.nil?
+            @connection.close_connection(:after_writing)
+            stop_timer
+            @connection = nil
         end
 
 
-        protected
+        def start_timer
+            return if @timer.nil?
+            @timer.progress @idle_timeout_method
+            @timer.start @inactivity_timeout
+        end
 
-
-        def idle_timeout
-            @timer.stop
-            @transport.close
+        def restart_timer
+            @timer.again unless @timer.nil?
         end
 
         def stop_timer
             @timer.stop unless @timer.nil?
         end
 
-        def parse_ntlm_challenge_header(challenge)
-            scheme, param_str = challenge.scan(/\A(\S+)(?:\s+(.*))?\z/)[0]
-            return nil if scheme.nil?
-            return scheme, param_str
+        def idle_timeout
+            close_connection
         end
     end
 end

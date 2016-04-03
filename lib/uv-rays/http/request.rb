@@ -1,3 +1,5 @@
+require 'rubyntlm'
+
 module UV
     module Http
         class Request < ::Libuv::Q::DeferredPromise
@@ -9,9 +11,7 @@ module UV
             CRLF="\r\n"
 
 
-            attr_reader :path
-            attr_reader :method
-            attr_reader :headers, :options
+            attr_reader :path, :method, :options
 
 
             def cookies_hash
@@ -23,35 +23,33 @@ module UV
             end
             
 
-            def initialize(endpoint, options, using_ntlm)
-                super(endpoint.loop, endpoint.loop.defer)
+            def initialize(endpoint, options)
+                super(endpoint.thread, endpoint.thread.defer)
 
                 @options = options
                 @endpoint = endpoint
-                @ntlm_retries = using_ntlm ? 0 : nil
+                @ntlm_creds = options[:ntlm]
 
                 @path = options[:path]
                 @method = options[:method]
                 @uri = "#{endpoint.scheme}#{encode_host(endpoint.host, endpoint.port)}#{@path}"
+
+                @error = proc { |reason| reject(reason) }
             end
 
-            def resolve(response, body)
-                if @ntlm_retries == 0 && @headers.status == 401 && @headers[:"WWW-Authenticate"]
-                    @options[:headers][:Authorization] = @endpoint.ntlm_auth_header(@headers[:"WWW-Authenticate"])
+
+
+            def resolve(response, parser = nil)
+                if response.status == 401 && @ntlm_creds && @ntlm_retries == 0 && response[:"WWW-Authenticate"]
+                    @options[:headers][:Authorization] = ntlm_auth_header(response[:"WWW-Authenticate"])
                     @ntlm_retries += 1
 
-                    response.request = self
-                    execute(*@exec_params)
+                    execute(@transport)
+                    false
                 else
-                    if @ntlm_retries == 1
-                        @endpoint.clear_ntlm_header
-                    end
-
-                    @exec_params = nil
-                    @defer.resolve({
-                        headers: @headers,
-                        body: body
-                    })
+                    @transport = nil
+                    @defer.resolve(response)
+                    true
                 end
             end
 
@@ -59,9 +57,15 @@ module UV
                 @defer.reject(reason)
             end
 
-            def execute(transport, error)
+            def execute(transport)
+                # configure ntlm request headers
+                if @options[:ntlm]
+                    @options[:headers] ||= {}
+                    @options[:headers][:Authorization] ||= ntlm_auth_header
+                end
+
                 head, body = build_request, @options[:body]
-                @exec_params = [transport, error]
+                @transport = transport
 
                 @endpoint.middleware.each do |m|
                     head, body = m.request(self, head, body) if m.respond_to?(:request)
@@ -94,23 +98,23 @@ module UV
 
                 if body
                     request_header << body
-                    transport.write(request_header).catch error
+                    transport.write(request_header).catch @error
                 elsif file
-                    transport.write(request_header).catch error
+                    transport.write(request_header).catch @error
 
                     # Send file
                     fileRef = @endpoint.loop.file file, File::RDONLY
                     fileRef.progress do
                         # File is open and available for reading
                         pSend = fileRef.send_file(transport, :raw)
-                        pSend.catch error
+                        pSend.catch @error
                         pSend.finally do
                             fileRef.close
                         end
                     end
-                    fileRef.catch error
+                    fileRef.catch @error
                 else
-                    transport.write(request_header).catch error
+                    transport.write(request_header).catch @error
                 end
             end
 
@@ -119,19 +123,17 @@ module UV
             end
 
             def set_headers(head)
-                @headers = head
-                if not @headers_callback.nil?
-                    @headers_callback.call(@headers)
-                end
+                @headers_callback.call(head) if @headers_callback
             end
 
+
+
             def on_headers(callback, &blk)
-                callback ||= blk
-                if @headers.nil?
-                    @headers_callback = callback
-                else
-                    callback.call(@headers)
-                end
+                @headers_callback = callback
+            end
+
+            def streaming?
+                @options[:streaming]
             end
 
 
@@ -172,6 +174,36 @@ module UV
                 end
 
                 head
+            end
+
+            def ntlm_auth_header(challenge = nil)
+                if @ntlm_auth && challenge.nil?
+                    return @ntlm_auth
+                elsif challenge
+                    scheme, param_str = parse_ntlm_challenge_header(challenge)
+                    if param_str.nil?
+                        @ntlm_auth = nil
+                        return ntlm_auth_header(@ntlm_creds)
+                    else
+                        t2 = Net::NTLM::Message.decode64(param_str)
+                        t3 = t2.response(@ntlm_creds, ntlmv2: true)
+                        @ntlm_auth = "NTLM #{t3.encode64}"
+                        return @ntlm_auth
+                    end
+                else
+                    @ntlm_retries = 0
+                    domain = @ntlm_creds[:domain]
+                    t1 = Net::NTLM::Message::Type1.new()
+                    t1.domain = domain if domain
+                    @ntlm_auth = "NTLM #{t1.encode64}"
+                    return @ntlm_auth
+                end
+            end
+
+            def parse_ntlm_challenge_header(challenge)
+                scheme, param_str = challenge.scan(/\A(\S+)(?:\s+(.*))?\z/)[0]
+                return nil if scheme.nil?
+                return scheme, param_str
             end
         end
     end

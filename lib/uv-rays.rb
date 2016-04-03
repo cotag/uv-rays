@@ -24,7 +24,7 @@ require 'http-parser'       # Parses HTTP request / responses
 require 'addressable/uri'   # URI parser
 require 'uv-rays/http/encoding'
 require 'uv-rays/http/request'
-require 'uv-rays/http/response'
+require 'uv-rays/http/parser'
 require 'uv-rays/http_endpoint'
 
 
