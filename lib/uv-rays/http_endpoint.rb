@@ -31,6 +31,7 @@ module UV
         class Connection < OutboundConnection
             def initialize(host, port, tls, client)
                 @client = client
+                @request = nil
                 super(host, port)
                 use_tls(client.tls_options) if tls
             end
@@ -47,7 +48,18 @@ module UV
             end
 
             def on_close # user to define
-                @client.connection_closed
+                req = @request
+                @request = nil
+                @client.connection_closed(req)
+            end
+
+            def close_connection(request = nil)
+                if request.is_a? Http::Request
+                    @request = request
+                    super(:after_writing)
+                else
+                    super(request)
+                end
             end
         end
 
@@ -107,6 +119,7 @@ module UV
                 if response.keep_alive
                     restart_timer
                 else
+
                     close_connection
                 end
 
@@ -137,11 +150,14 @@ module UV
             end
         end
 
-        def connection_closed
-            @connection = nil
-            stop_timer
+        def connection_closed(request)
+            # We may have closed a previous connection
+            if request.nil? || request == @parser.request
+                @connection = nil
+                stop_timer
 
-            @parser.eof
+                @parser.eof
+            end
         end
 
         def data_received(data)
