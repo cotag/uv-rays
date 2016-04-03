@@ -192,7 +192,7 @@ module UV
 
         def close_connection
             return if @connection.nil?
-            @connection.close_connection(:after_writing)
+            @connection.close_connection(@parser.request)
             stop_timer
             @connection = nil
         end
