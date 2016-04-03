@@ -36,6 +36,8 @@ module UV
                 use_tls(client.tls_options) if tls
             end
 
+            attr_accessor :request
+
             def on_read(data, *args) # user to define
                 @client.data_received(data)
             end
@@ -174,6 +176,7 @@ module UV
 
             if @connection
                 req = @queue.pop
+                @connection.request = req
                 @parser.new_request(req)
 
                 req.execute(@connection)
