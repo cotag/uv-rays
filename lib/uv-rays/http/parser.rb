@@ -130,6 +130,7 @@ module UV
 
             # We need to flush the response on disconnect if content-length is undefined
             # As per the HTTP spec
+            attr_accessor :reason
             def eof
                 return if @request.nil?
 
@@ -137,7 +138,7 @@ module UV
                     on_message_complete(nil)
                 else
                     # Reject if this is a partial response
-                    @request.reject(:partial_response)
+                    @request.reject(@reason || :partial_response)
                     cleanup
                 end
             end
@@ -150,6 +151,7 @@ module UV
                 @request = nil
                 @body = nil
                 @headers = nil
+                @reason = nil
                 @headers_complete = false
             end
         end

@@ -114,6 +114,33 @@ module BrokenServer
 	end
 end
 
+module SlowServer
+	@@req = 0
+
+	def post_init
+		@parser = ::HttpParser::Parser.new(self)
+        @state = ::HttpParser::Parser.new_instance
+        @state.type = :request
+	end
+
+	def on_message_complete(parser)
+		if @@req == 0
+			@state = ::HttpParser::Parser.new_instance
+			write("HTTP/1.1 200 OK\r\nContent-")
+		else
+			write("HTTP/1.1 200 OK\r\nContent-type: text/html\r\nContent-length: 3\r\n\r\nokg")
+		end
+		@@req += 1
+	end
+
+	def on_read(data, connection)
+		if @parser.parse(@state, data)
+            p 'parse error'
+            p @state.error
+        end
+	end
+end
+
 
 describe UV::HttpEndpoint do
 	before :each do
@@ -346,7 +373,7 @@ describe UV::HttpEndpoint do
 	end
 
 	describe 'when things go wrong' do
-		it "should reconnect and continue sending requests" do
+		it "should reconnect after connection dropped and continue sending requests" do
 			@loop.run { |logger|
 				logger.progress do |level, errorid, error|
 					begin
@@ -386,6 +413,48 @@ describe UV::HttpEndpoint do
 			expect(@response2.cookies).to eq({})
 			expect(@response2.keep_alive).to eq(true)
 			expect(@response2.body).to eq('yes')
+		end
+
+		it "should reconnect after timeout and continue sending requests" do
+			@loop.run { |logger|
+				logger.progress do |level, errorid, error|
+					begin
+						@general_failure << "Log called: #{level}: #{errorid}\n#{error.message}\n#{error.backtrace.join("\n")}\n"
+					rescue Exception
+						@general_failure << 'error in logger'
+					end
+				end
+
+				tcp = UV.start_server '127.0.0.1', 6363, SlowServer
+				server = UV::HttpEndpoint.new 'http://127.0.0.1:6363', inactivity_timeout: 500
+
+				@response = nil
+				request = server.get(:path => '/')
+				request.then(proc { |response|
+					@response = response
+					#@loop.stop
+				}, proc { |error|
+					@error = error
+				})
+				
+				request2 = server.get(:path => '/')
+				request2.then(proc { |response|
+					@response2 = response
+					tcp.close
+					@loop.stop
+				}, @request_failure)
+			}
+
+			expect(@general_failure).to eq([])
+			expect(@response).to eq(nil)
+			expect(@error).to eq(:timeout)
+
+			expect(@response2[:"Content-type"]).to eq('text/html')
+			expect(@response2.http_version).to eq('1.1')
+			expect(@response2.status).to eq(200)
+			expect(@response2.cookies).to eq({})
+			expect(@response2.keep_alive).to eq(true)
+			expect(@response2.body).to eq('okg')
 		end
 	end
 end

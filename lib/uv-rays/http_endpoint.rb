@@ -167,6 +167,18 @@ module UV
             close_connection if @parser.received(data)
         end
 
+        def cancel_all
+            @queue.each do |request|
+                request.reject(:cancelled)
+            end
+            if @parser.request
+                @parser.request.reject(:cancelled)
+                @parser.eof
+            end
+            @queue = []
+            close_connection
+        end
+
 
         private
 
@@ -216,6 +228,7 @@ module UV
         end
 
         def idle_timeout
+            @parser.reason = :timeout
             close_connection
         end
     end
