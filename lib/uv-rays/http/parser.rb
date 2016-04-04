@@ -13,6 +13,12 @@ module UV
             attr_accessor :keep_alive
 
             attr_accessor :body
+
+            def to_s
+                "HTTP#{http_version} #{status} - keep alive: #{keep_alive}\nheaders: #{super}\nbody: #{body}"
+            end
+
+            alias_method :inspect, :to_s
         end
 
         class Parser
