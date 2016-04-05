@@ -456,5 +456,46 @@ describe UV::HttpEndpoint do
 			expect(@response2.keep_alive).to eq(true)
 			expect(@response2.body).to eq('okg')
 		end
+
+		it "should fail if the server is not available" do
+			@loop.run { |logger|
+				logger.progress do |level, errorid, error|
+					begin
+						@general_failure << "Log called: #{level}: #{errorid}\n#{error.message}\n#{error.backtrace.join("\n")}\n"
+					rescue Exception
+						@general_failure << 'error in logger'
+					end
+				end
+
+				server = UV::HttpEndpoint.new 'http://127.0.0.1:6666', inactivity_timeout: 500
+
+				@response = nil
+				@response2 = nil
+
+				request = server.get(:path => '/')
+				request.then(proc { |response|
+					@response = response
+					#@loop.stop
+				}, proc { |error|
+					@error = error
+				})
+				
+				request2 = server.get(:path => '/')
+				request2.then(proc { |response|
+					@response2 = response
+					@loop.stop
+				}, proc { |error|
+					@error2 = error
+					@loop.stop
+				})
+			}
+
+			expect(@general_failure).to eq([])
+			expect(@response).to eq(nil)
+			expect(@error).to eq(:connection_failure)
+
+			expect(@response2).to eq(nil)
+			expect(@error2).to eq(:connection_failure)
+		end
 	end
 end

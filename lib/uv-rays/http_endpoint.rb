@@ -154,11 +154,14 @@ module UV
 
         def connection_closed(request)
             # We may have closed a previous connection
-            if request.nil? || request == @parser.request
+            if @parser.request && (request.nil? || request == @parser.request)
                 @connection = nil
                 stop_timer
 
                 @parser.eof
+            elsif request.nil? && @parser.request.nil? && @queue.length > 0
+                req = @queue.pop
+                req.reject :connection_failure
             end
         end
 
