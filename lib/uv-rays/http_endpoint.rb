@@ -135,10 +135,8 @@ module UV
             })
 
             @queue.unshift(request)
-            if @queue.length == 1 && @parser.request.nil?
-                next_request
-            end
 
+            next_request
             request
         end
 
