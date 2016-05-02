@@ -1,4 +1,7 @@
+require 'uri'
+require 'cgi'
 require 'rubyntlm'
+require 'net/http/digest_auth'
 
 module UV
     module Http
@@ -29,10 +32,12 @@ module UV
                 @options = options
                 @endpoint = endpoint
                 @ntlm_creds = options[:ntlm]
+                @digest_creds = options[:digest]
+                @challenge_retries = 0
 
                 @path = options[:path]
                 @method = options[:method]
-                @uri = "#{endpoint.scheme}#{encode_host(endpoint.host, endpoint.port)}#{@path}"
+                @uri = "#{endpoint.scheme}://#{encode_host(endpoint.host, endpoint.port)}#{@path}"
 
                 @error = proc { |reason| reject(reason) }
             end
@@ -40,17 +45,34 @@ module UV
 
 
             def resolve(response, parser = nil)
-                if response.status == 401 && @ntlm_creds && @ntlm_retries == 0 && response[:"WWW-Authenticate"]
-                    @options[:headers][:Authorization] = ntlm_auth_header(response[:"WWW-Authenticate"])
-                    @ntlm_retries += 1
+                if response.status == 401 && @challenge_retries == 0 && response[:"WWW-Authenticate"]
+                    challenge = response[:"WWW-Authenticate"]
 
-                    execute(@transport)
-                    false
-                else
-                    @transport = nil
-                    @defer.resolve(response)
-                    true
+                    begin
+                        if @ntlm_creds && challenge[0..3] == 'NTLM'
+                            @options[:headers] ||= {}
+                            @options[:headers][:Authorization] = ntlm_auth_header(challenge)
+                            @challenge_retries += 1
+
+                            execute(@transport)
+                            return false
+                        elsif @digest_creds && challenge[0..5] == 'Digest'
+                            @options[:headers] ||= {}
+                            @options[:headers][:Authorization] = digest_auth_header(challenge)
+                            @challenge_retries += 1
+
+                            execute(@transport)
+                            return false
+                        end
+                    rescue => e
+                        reject e
+                        true
+                    end
                 end
+
+                @transport = nil
+                @defer.resolve(response)
+                true
             end
 
             def reject(reason)
@@ -68,7 +90,12 @@ module UV
                 @transport = transport
 
                 @endpoint.middleware.each do |m|
-                    head, body = m.request(self, head, body) if m.respond_to?(:request)
+                    begin
+                        head, body = m.request(self, head, body) if m.respond_to?(:request)
+                    rescue => e
+                        reject e
+                        return
+                    end
                 end
 
                 body = body.is_a?(Hash) ? form_encode_body(body) : body
@@ -191,7 +218,6 @@ module UV
                         return @ntlm_auth
                     end
                 else
-                    @ntlm_retries = 0
                     domain = @ntlm_creds[:domain]
                     t1 = Net::NTLM::Message::Type1.new()
                     t1.domain = domain if domain
@@ -204,6 +230,15 @@ module UV
                 scheme, param_str = challenge.scan(/\A(\S+)(?:\s+(.*))?\z/)[0]
                 return nil if scheme.nil?
                 return scheme, param_str
+            end
+
+            def digest_auth_header(challenge)
+                uri = URI.parse @uri
+                uri.userinfo = "#{CGI::escape(@digest_creds[:user])}:#{CGI::escape(@digest_creds[:password])}"
+
+                digest_auth = Net::HTTP::DigestAuth.new
+                auth = digest_auth.auth_header uri, challenge, method.to_s.upcase
+                auth
             end
         end
     end

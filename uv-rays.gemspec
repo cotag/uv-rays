@@ -21,6 +21,7 @@ Gem::Specification.new do |gem|
     gem.add_runtime_dependency     'addressable'
     gem.add_runtime_dependency     'http-parser', '>= 1.0.4'
     gem.add_runtime_dependency     'rubyntlm'
+    gem.add_runtime_dependency     'net-http-digest_auth'
 
     gem.add_development_dependency 'rspec', '>= 2.14'
     gem.add_development_dependency 'rake', '>= 10.1'
