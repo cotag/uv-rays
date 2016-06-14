@@ -6,7 +6,7 @@ module UV
             @jar = ::CookieJar::Jar.new
         end
 
-        def set(string, uri)
+        def set(uri, string)
             @jar.set_cookie(uri, string) rescue nil # drop invalid cookies
         end
 

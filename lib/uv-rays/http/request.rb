@@ -24,7 +24,7 @@ module UV
             def set_cookie(value)
                 @endpoint.cookiejar.set(@uri, value)
             end
-            
+
 
             def initialize(endpoint, options)
                 super(endpoint.thread, endpoint.thread.defer)

@@ -9,7 +9,7 @@ module HttpServer
 	end
 
 	def on_message_complete(parser)
-		write("HTTP/1.1 200 OK\r\nContent-type: text/html\r\nContent-length: 1\r\n\r\ny")
+		write("HTTP/1.1 200 OK\r\nSet-Cookie: Test=path\r\nSet-Cookie: other=val; path=/whatwhat\r\nContent-type: text/html\r\nContent-length: 1\r\n\r\ny")
 	end
 
 	def on_read(data, connection)
@@ -184,7 +184,7 @@ describe UV::HttpEndpoint do
 			@loop.stop
 		}
 	end
-	
+
 	describe 'basic http request' do
 		it "should send a request then receive a response" do
 			@loop.run { |logger|
@@ -199,7 +199,7 @@ describe UV::HttpEndpoint do
 				tcp = UV.start_server '127.0.0.1', 3250, HttpServer
 				server = UV::HttpEndpoint.new 'http://127.0.0.1:3250'
 
-				request = server.get(:path => '/')
+				request = server.get(:path => '/whatwhat')
 				request.then(proc { |response|
 					@response = response
 					tcp.close
@@ -211,7 +211,7 @@ describe UV::HttpEndpoint do
 			expect(@response[:"Content-type"]).to eq('text/html')
 			expect(@response.http_version).to eq('1.1')
 			expect(@response.status).to eq(200)
-			expect(@response.cookies).to eq({})
+			expect(@response.cookies).to eq({:Test=>"path", :other=>"val"})
 			expect(@response.keep_alive).to eq(true)
 
 			expect(@response.body).to eq('y')
@@ -262,12 +262,12 @@ describe UV::HttpEndpoint do
 				tcp = UV.start_server '127.0.0.1', 3250, HttpServer
 				server = UV::HttpEndpoint.new 'http://127.0.0.1:3250'
 
-				request = server.get(path: '/', req: 1)
+				request = server.get(path: '/whatwhat', req: 1)
 				request.then(proc { |response|
 					@response = response
 					#@loop.stop
 				}, @request_failure)
-				
+
 				request2 = server.get(path: '/', req: 2)
 				request2.then(proc { |response|
 					@response2 = response
@@ -280,13 +280,13 @@ describe UV::HttpEndpoint do
 			expect(@response[:"Content-type"]).to eq('text/html')
 			expect(@response.http_version).to eq('1.1')
 			expect(@response.status).to eq(200)
-			expect(@response.cookies).to eq({})
+			expect(@response.cookies).to eq({:Test=>"path", :other=>"val"})
 			expect(@response.keep_alive).to eq(true)
 
 			expect(@response2[:"Content-type"]).to eq('text/html')
 			expect(@response2.http_version).to eq('1.1')
 			expect(@response2.status).to eq(200)
-			expect(@response2.cookies).to eq({})
+			expect(@response2.cookies).to eq({:Test=>"path"})
 			expect(@response2.keep_alive).to eq(true)
 		end
 	end
@@ -339,7 +339,7 @@ describe UV::HttpEndpoint do
 					@response = response
 					#@loop.stop
 				}, @request_failure)
-				
+
 				request2 = server.get(:path => '/')
 				request2.then(proc { |response|
 					@response2 = response
@@ -432,6 +432,35 @@ describe UV::HttpEndpoint do
 		end
 	end
 
+	describe 'cookies' do
+		it "should accept cookies and send them on subsequent requests" do
+			@loop.run { |logger|
+				logger.progress do |level, errorid, error|
+					begin
+						@general_failure << "Log called: #{level}: #{errorid}\n#{error.message}\n#{error.backtrace.join("\n")}\n"
+					rescue Exception
+						@general_failure << 'error in logger'
+					end
+				end
+
+				tcp = UV.start_server '127.0.0.1', 3250, HttpServer
+				@server = UV::HttpEndpoint.new 'http://127.0.0.1:3250'
+
+				request = @server.get(:path => '/whatwhat')
+				expect(request.cookies_hash).to eq({})
+
+				request.then(proc { |response|
+					tcp.close
+					@loop.stop
+				}, @request_failure)
+			}
+
+			expect(@general_failure).to eq([])
+			expect(@server.cookiejar.get('http://127.0.0.1:3250/whatno')).to eq(["Test=path"])
+			@server = nil
+		end
+	end
+
 	describe 'when things go wrong' do
 		it "should reconnect after connection dropped and continue sending requests" do
 			@loop.run { |logger|
@@ -454,7 +483,7 @@ describe UV::HttpEndpoint do
 				}, proc { |error|
 					@error = error
 				})
-				
+
 				request2 = server.get(:path => '/')
 				request2.then(proc { |response|
 					@response2 = response
@@ -496,7 +525,7 @@ describe UV::HttpEndpoint do
 				}, proc { |error|
 					@error = error
 				})
-				
+
 				request2 = server.get(:path => '/')
 				request2.then(proc { |response|
 					@response2 = response
@@ -539,7 +568,7 @@ describe UV::HttpEndpoint do
 				}, proc { |error|
 					@error = error
 				})
-				
+
 				request2 = server.get(:path => '/')
 				request2.then(proc { |response|
 					@response2 = response
