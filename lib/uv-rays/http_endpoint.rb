@@ -25,6 +25,10 @@ module UV
             end
             cookies
         end
+
+        def clear_cookies
+            @jar = ::CookieJar::Jar.new
+        end
     end # CookieJar
 
     class HttpEndpoint
