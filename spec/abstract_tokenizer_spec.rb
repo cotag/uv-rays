@@ -93,4 +93,15 @@ describe UV::AbstractTokenizer do
         result = @buffer.extract('bcd')
         expect(result).to eq(['abcd'])
     end
+
+    it "should work where the indicator is part of the message" do
+        # i.e. We are looking for \x02\x06\xLEN\x00\x00\x02\x06\x00\xEND
+        # Where the indicator may appear as part of the message body
+
+        msg1 = "StartStartStart123456"
+
+        result = @buffer.extract(msg1)
+        expect(result).to eq(['Star', '1234'])
+        expect(@buffer.flush).to eq('56')    # as we've indicated a message length of 4
+    end
 end

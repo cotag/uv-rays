@@ -39,47 +39,30 @@ module UV
             data.force_encoding(@encoding)
             @input << data
 
-            messages = @input.split(@indicator, -1)
-            if messages.length > 1
-                messages.shift      # the first item will always be junk
-                last = messages.pop # the last item may require buffering
+            entities = []
 
-                entities = []
-                messages.each do |msg|
-                    result = @callback.call(msg)
-                    entities << msg[0...result] if result
-                end
+            loop do
+                found = false
 
-                # Check if buffering is required
+                check = @input.partition(@indicator)
+                break unless check[1].length > 0
+
+                last = check[2]
                 result = @callback.call(last)
                 if result
+                    found = true
+
                     # Check for multi-byte indicator edge case
                     if result.is_a? Fixnum
                         entities << last[0...result]
                         @input = last[result..-1]
                     else
-                        reset
                         entities << last
+                        reset
                     end
-                else
-                    # This will work with a regex
-                    index = if messages.last.nil?
-                        0
-                    else
-                        # Possible that rindex will not find a match
-                        check = @input[0...-last.length].rindex(messages.last)
-                        if check.nil?
-                            0
-                        else
-                            check + messages.last.length
-                        end
-                    end
-                    indicator_val = @input[index...-last.length]
-                    @input = indicator_val + last
                 end
-            else
-                @input = messages.pop
-                entities = messages
+
+                break if not found
             end
 
             # Check to see if the buffer has exceeded capacity, if we're imposing a limit
@@ -118,8 +101,7 @@ module UV
 
 
         def reset
-            @input = ''
-            @input.force_encoding(@encoding)
+            @input = ''.force_encoding(@encoding)
         end
     end
 end
