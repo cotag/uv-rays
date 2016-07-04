@@ -88,7 +88,7 @@ module UV
             messages = @input.split(@delimiter, -1)
 
             if @indicator
-                @input = messages.pop
+                @input = messages.pop || ''
                 entities = []
                 messages.each do |msg|
                     res = msg.split(@indicator, -1)
@@ -96,7 +96,7 @@ module UV
                 end
             else
                 entities = messages
-                @input = entities.pop
+                @input = entities.pop || ''
             end
 
             check_buffer_limits
