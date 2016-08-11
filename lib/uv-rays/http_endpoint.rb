@@ -125,7 +125,6 @@ module UV
                 if response.keep_alive
                     restart_timer
                 else
-
                     close_connection
                 end
 
@@ -133,6 +132,7 @@ module UV
 
                 response
             }, proc { |err|
+                @parser.eof
                 close_connection
                 next_request
                 ::Libuv::Q.reject(@thread, err)
