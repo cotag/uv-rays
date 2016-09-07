@@ -130,10 +130,9 @@ module UV
                     transport.write(request_header).catch @error
 
                     # Send file
-                    fileRef = @endpoint.loop.file file, File::RDONLY
-                    fileRef.progress do
+                    fileRef = @endpoint.reactor.file file, File::RDONLY do
                         # File is open and available for reading
-                        pSend = fileRef.send_file(transport, :raw)
+                        pSend = fileRef.send_file(transport, using: :raw, wait: :promise)
                         pSend.catch @error
                         pSend.finally do
                             fileRef.close

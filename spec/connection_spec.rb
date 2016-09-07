@@ -12,13 +12,13 @@ module TestConnect
 
 	def on_close
 		@disconnected = true
-		@loop.stop
+		@reactor.stop
 	end
 
 	def on_read(data, connection, port = nil, udp_test = nil)
 		@received = data
 		close_connection(:after_writing)
-		@loop.stop if udp_test 	# misc is set when test connect is a UDP connection
+		@reactor.stop if udp_test 	# misc is set when test connect is a UDP connection
 	end
 
 	def check
@@ -48,10 +48,17 @@ end
 
 describe UV::Connection do
 	before :each do
-		@loop = Libuv::Loop.new
+		@reactor = Libuv::Reactor.new
+		@reactor.notifier do |error, context|
+			begin
+				@general_failure << "Log called: #{context}\n#{error.message}\n#{error.backtrace.join("\n") if error.backtrace}\n"
+			rescue Exception
+				@general_failure << "error in logger #{e.inspect}"
+			end
+		end
 		@general_failure = []
-		@timeout = @loop.timer do
-			@loop.stop
+		@timeout = @reactor.timer do
+			@reactor.stop
 			@general_failure << "test timed out"
 		end
 		@timeout.start(5000)
@@ -74,15 +81,7 @@ describe UV::Connection do
 	
 	describe 'basic tcp client server' do
 		it "should send some data and shutdown the socket" do
-			@loop.run { |logger|
-				logger.progress do |level, errorid, error|
-					begin
-						@general_failure << "Log called: #{level}: #{errorid}\n#{error.message}\n#{error.backtrace.join("\n")}\n"
-					rescue Exception
-						@general_failure << 'error in logger'
-					end
-				end
-
+			@reactor.run { |reactor|
 				UV.start_server '127.0.0.1', 3210, TestServer
 				@klass = UV.connect '127.0.0.1', 3210, TestConnect
 			}
@@ -95,15 +94,7 @@ describe UV::Connection do
 		end
 
 		it "should not call connect on connection failure" do
-			@loop.run { |logger|
-				logger.progress do |level, errorid, error|
-					begin
-						@general_failure << "Log called: #{level}: #{errorid}\n#{error.message}\n#{error.backtrace.join("\n")}\n"
-					rescue Exception
-						@general_failure << 'error in logger'
-					end
-				end
-
+			@reactor.run { |reactor|
 				@klass = UV.connect '127.0.0.1', 8123, TestConnect
 			}
 
@@ -117,15 +108,7 @@ describe UV::Connection do
 
 	describe 'basic tcp client server with tls' do
 		it "should send some data and shutdown the socket" do
-			@loop.run { |logger|
-				logger.progress do |level, errorid, error|
-					begin
-						@general_failure << "Log called: #{level}: #{errorid}\n#{error.message}\n#{error.backtrace.join("\n")}\n"
-					rescue Exception
-						@general_failure << 'error in logger'
-					end
-				end
-
+			@reactor.run { |reactor|
 				UV.start_server '127.0.0.1', 3212, TestServer, :use_tls
 				@klass = UV.connect '127.0.0.1', 3212, TestConnect
 				@klass.use_tls
@@ -141,15 +124,7 @@ describe UV::Connection do
 
 	describe 'basic udp client server' do
 		it "should send some data and close the socket" do
-			@loop.run { |logger|
-				logger.progress do |level, errorid, error|
-					begin
-						@general_failure << "Log called: #{level}: #{errorid}\n#{error.message}\n#{error.backtrace.join("\n")}\n"
-					rescue Exception
-						@general_failure << 'error in logger'
-					end
-				end
-
+			@reactor.run { |reactor|
 				UV.open_datagram_socket TestServer, '127.0.0.1', 3210
 				@klass = UV.open_datagram_socket TestConnect, '127.0.0.1', 3211
 				@klass.send_datagram('hello', '127.0.0.1', 3210)

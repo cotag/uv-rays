@@ -65,21 +65,21 @@ module UV
     end
 
     def self.start_server(server, port, handler, *args)
-        loop = Libuv::Loop.current   # Get the current event loop
-        raise ThreadError, "There is no Libuv Loop running on the current thread" if loop.nil?
+        thread = reactor   # Get the reactor running on this thread
+        raise ThreadError, "There is no Libuv reactor running on the current thread" if thread.nil?
 
         klass = klass_from_handler(InboundConnection, handler, *args)
-        UV::TcpServer.new loop, server, port, klass, *args
+        UV::TcpServer.new thread, server, port, klass, *args
     end
 
     def self.attach_server(sock, handler, *args)
-        loop = Libuv::Loop.current   # Get the current event loop
-        raise ThreadError, "There is no Libuv Loop running on the current thread" if loop.nil?
+        thread = reactor   # Get the reactor running on this thread
+        raise ThreadError, "There is no Libuv reactor running on the current thread" if thread.nil?
 
         klass = klass_from_handler(InboundConnection, handler, *args)
         sd = sock.respond_to?(:fileno) ? sock.fileno : sock
 
-        UV::TcpServer.new loop, sd, sd, klass, *args
+        UV::TcpServer.new thread, sd, sd, klass, *args
     end
 
     def self.open_datagram_socket(handler, server = nil, port = nil, *args)

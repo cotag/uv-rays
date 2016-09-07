@@ -2,30 +2,30 @@ require 'uv-rays'
 
 describe UV::Scheduler do
     before :each do
-        @loop = Libuv::Loop.new
         @general_failure = []
-        @timeout = @loop.timer do
-            @loop.stop
+        @reactor = Libuv::Reactor.new
+        @reactor.notifier do |error, context|
+            begin
+                @general_failure << "Log called: #{context}\n#{error.message}\n#{error.backtrace.join("\n") if error.backtrace}\n"
+            rescue Exception
+                @general_failure << "error in logger #{e.inspect}"
+            end
+        end
+
+        @timeout = @reactor.timer do
+            @reactor.stop
             @general_failure << "test timed out"
         end
         @timeout.start(5000)
-        @scheduler = @loop.scheduler
+        @scheduler = @reactor.scheduler
     end
 
     it "should be able to schedule a one shot event using 'in'" do
-        @loop.run { |logger|
-            logger.progress do |level, errorid, error|
-                begin
-                    @general_failure << "Log called: #{level}: #{errorid}\n#{error.message}\n#{error.backtrace.join("\n")}\n"
-                rescue Exception
-                    @general_failure << 'error in logger'
-                end
-            end
-
+        @reactor.run { |reactor|
             @event = @scheduler.in('0.5s') do |triggered, event|
                 @triggered_at = triggered
                 @result = event
-                @loop.stop
+                @reactor.stop
             end
         }
 
@@ -37,19 +37,11 @@ describe UV::Scheduler do
     end
 
     it "should be able to schedule a one shot event using 'at'" do
-        @loop.run { |logger|
-            logger.progress do |level, errorid, error|
-                begin
-                    @general_failure << "Log called: #{level}: #{errorid}\n#{error.message}\n#{error.backtrace.join("\n")}\n"
-                rescue Exception
-                    @general_failure << 'error in logger'
-                end
-            end
-
+        @reactor.run { |reactor|
             @event = @scheduler.at(Time.now + 1) do |triggered, event|
                 @triggered_at = triggered
                 @result = event
-                @loop.stop
+                @reactor.stop
             end
         }
 
@@ -61,15 +53,7 @@ describe UV::Scheduler do
     end
 
     it "should be able to schedule a repeat event" do
-        @loop.run { |logger|
-            logger.progress do |level, errorid, error|
-                begin
-                    @general_failure << "Log called: #{level}: #{errorid}\n#{error.message}\n#{error.backtrace.join("\n")}\n"
-                rescue Exception
-                    @general_failure << 'error in logger'
-                end
-            end
-
+        @reactor.run { |reactor|
             @run = 0
             @event = @scheduler.every('0.25s') do |triggered, event|
                 @triggered_at = triggered
@@ -82,7 +66,7 @@ describe UV::Scheduler do
                 @run += 1
                 if @run == 2
                     @event.pause
-                    @loop.stop
+                    @reactor.stop
                 end
             end
         }
@@ -95,15 +79,7 @@ describe UV::Scheduler do
     it "should be able to cancel an event" do
         # Also tests events run in order of scheduled
         # Also tests events are not inadvertently canceled by other test
-        @loop.run { |logger|
-            logger.progress do |level, errorid, error|
-                begin
-                    @general_failure << "Log called: #{level}: #{errorid}\n#{error.message}\n#{error.backtrace.join("\n")}\n"
-                rescue Exception
-                    @general_failure << 'error in logger'
-                end
-            end
-
+        @reactor.run { |reactor|
             @triggered = []
 
             @event1 = @scheduler.in('0.5s') do |triggered, event|
@@ -116,7 +92,7 @@ describe UV::Scheduler do
 
             @event3 = @scheduler.in('0.5s') do |triggered, event|
                 @triggered << 3
-                @loop.stop
+                @reactor.stop
             end
 
             @scheduled, @schedules = @scheduler.instance_eval { 
@@ -128,7 +104,7 @@ describe UV::Scheduler do
 
             @event2.cancel
 
-            @loop.next_tick do
+            @reactor.next_tick do
                 expect(@scheduled.size).to eq(2)
                 expect(@schedules.size).to eq(2)
             end

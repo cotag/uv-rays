@@ -1,8 +1,8 @@
 
 module UV
     class TcpServer < ::Libuv::TCP
-        def initialize(loop, server, port, klass, *args)
-            super(loop)
+        def initialize(reactor, server, port, klass, *args)
+            super(reactor)
 
             @klass = klass
             @args = args

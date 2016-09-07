@@ -171,31 +171,32 @@ end
 
 describe UV::HttpEndpoint do
 	before :each do
-		@loop = Libuv::Loop.new
 		@general_failure = []
-		@timeout = @loop.timer do
-			@loop.stop
+
+		@reactor = Libuv::Reactor.new
+		@reactor.notifier do |error, context|
+			begin
+				@general_failure << "Log called: #{context}\n#{error.message}\n#{error.backtrace.join("\n") if error.backtrace}\n"
+			rescue Exception
+				@general_failure << "error in logger #{e.inspect}"
+			end
+		end
+
+		@timeout = @reactor.timer do
+			@reactor.stop
 			@general_failure << "test timed out"
 		end
 		@timeout.start(5000)
 
 		@request_failure = proc { |err|
 			@general_failure << err
-			@loop.stop
+			@reactor.stop
 		}
 	end
 
 	describe 'basic http request' do
 		it "should send a request then receive a response" do
-			@loop.run { |logger|
-				logger.progress do |level, errorid, error|
-					begin
-						@general_failure << "Log called: #{level}: #{errorid}\n#{error.message}\n#{error.backtrace.join("\n")}\n"
-					rescue Exception
-						@general_failure << 'error in logger'
-					end
-				end
-
+			@reactor.run { |reactor|
 				tcp = UV.start_server '127.0.0.1', 3250, HttpServer
 				server = UV::HttpEndpoint.new 'http://127.0.0.1:3250'
 
@@ -203,7 +204,7 @@ describe UV::HttpEndpoint do
 				request.then(proc { |response|
 					@response = response
 					tcp.close
-					@loop.stop
+					@reactor.stop
 				}, @request_failure)
 			}
 
@@ -219,15 +220,7 @@ describe UV::HttpEndpoint do
 
 		it "should return the response when no length is given and the connection is closed" do
 			# I've seen IoT devices do this (projector screen controllers etc)
-			@loop.run { |logger|
-				logger.progress do |level, errorid, error|
-					begin
-						@general_failure << "Log called: #{level}: #{errorid}\n#{error.message}\n#{error.backtrace.join("\n")}\n"
-					rescue Exception
-						@general_failure << 'error in logger'
-					end
-				end
-
+			@reactor.run { |reactor|
 				tcp = UV.start_server '127.0.0.1', 3250, WeirdServer
 				server = UV::HttpEndpoint.new 'http://127.0.0.1:3250'
 
@@ -235,7 +228,7 @@ describe UV::HttpEndpoint do
 				request.then(proc { |response|
 					@response = response
 					tcp.close
-					@loop.stop
+					@reactor.stop
 				}, @request_failure)
 			}
 
@@ -250,29 +243,21 @@ describe UV::HttpEndpoint do
 		end
 
 		it "should send multiple requests on the same connection" do
-			@loop.run { |logger|
-				logger.progress do |level, errorid, error|
-					begin
-						@general_failure << "Log called: #{level}: #{errorid}\n#{error.message}\n#{error.backtrace.join("\n")}\n"
-					rescue Exception
-						@general_failure << 'error in logger'
-					end
-				end
-
+			@reactor.run { |reactor|
 				tcp = UV.start_server '127.0.0.1', 3250, HttpServer
 				server = UV::HttpEndpoint.new 'http://127.0.0.1:3250'
 
 				request = server.get(path: '/whatwhat', req: 1)
 				request.then(proc { |response|
 					@response = response
-					#@loop.stop
+					#@reactor.stop
 				}, @request_failure)
 
 				request2 = server.get(path: '/', req: 2)
 				request2.then(proc { |response|
 					@response2 = response
 					tcp.close
-					@loop.stop
+					@reactor.stop
 				}, @request_failure)
 			}
 
@@ -293,15 +278,7 @@ describe UV::HttpEndpoint do
 
 	describe 'old http request' do
 		it "should send a request then receive a response" do
-			@loop.run { |logger|
-				logger.progress do |level, errorid, error|
-					begin
-						@general_failure << "Log called: #{level}: #{errorid}\n#{error.message}\n#{error.backtrace.join("\n")}\n"
-					rescue Exception
-						@general_failure << 'error in logger'
-					end
-				end
-
+			@reactor.run { |reactor|
 				tcp = UV.start_server '127.0.0.1', 3250, OldServer
 				server = UV::HttpEndpoint.new 'http://127.0.0.1:3250'
 
@@ -309,7 +286,7 @@ describe UV::HttpEndpoint do
 				request.then(proc { |response|
 					@response = response
 					tcp.close
-					@loop.stop
+					@reactor.stop
 				}, @request_failure)
 			}
 
@@ -322,29 +299,21 @@ describe UV::HttpEndpoint do
 		end
 
 		it "should send multiple requests" do
-			@loop.run { |logger|
-				logger.progress do |level, errorid, error|
-					begin
-						@general_failure << "Log called: #{level}: #{errorid}\n#{error.message}\n#{error.backtrace.join("\n")}\n"
-					rescue Exception
-						@general_failure << 'error in logger'
-					end
-				end
-
+			@reactor.run { |reactor|
 				tcp = UV.start_server '127.0.0.1', 3251, OldServer
 				server = UV::HttpEndpoint.new 'http://127.0.0.1:3251'
 
 				request = server.get(:path => '/')
 				request.then(proc { |response|
 					@response = response
-					#@loop.stop
+					#@reactor.stop
 				}, @request_failure)
 
 				request2 = server.get(:path => '/')
 				request2.then(proc { |response|
 					@response2 = response
 					tcp.close
-					@loop.stop
+					@reactor.stop
 				}, @request_failure)
 			}
 
@@ -365,15 +334,7 @@ describe UV::HttpEndpoint do
 
 	describe 'Auth support' do
 		it "should perform NTLM auth transparently" do
-			@loop.run { |logger|
-				logger.progress do |level, errorid, error|
-					begin
-						@general_failure << "Log called: #{level}: #{errorid}\n#{error.message}\n#{error.backtrace.join("\n")}\n"
-					rescue Exception
-						@general_failure << 'error in logger'
-					end
-				end
-
+			@reactor.run { |reactor|
 				tcp = UV.start_server '127.0.0.1', 3252, NTLMServer
 				server = UV::HttpEndpoint.new 'http://127.0.0.1:3252', ntlm: {
 					user: 'username',
@@ -385,7 +346,7 @@ describe UV::HttpEndpoint do
 				request.then(proc { |response|
 					@response = response
 					tcp.close
-					@loop.stop
+					@reactor.stop
 				}, @request_failure)
 			}
 
@@ -399,15 +360,7 @@ describe UV::HttpEndpoint do
 		end
 
 		it "should perform Digest auth transparently" do
-			@loop.run { |logger|
-				logger.progress do |level, errorid, error|
-					begin
-						@general_failure << "Log called: #{level}: #{errorid}\n#{error.message}\n#{error.backtrace.join("\n")}\n"
-					rescue Exception
-						@general_failure << 'error in logger'
-					end
-				end
-
+			@reactor.run { |reactor|
 				tcp = UV.start_server '127.0.0.1', 3252, DigestServer
 				server = UV::HttpEndpoint.new 'http://127.0.0.1:3252', digest: {
 					user: 'Mufasa',
@@ -418,7 +371,7 @@ describe UV::HttpEndpoint do
 				request.then(proc { |response|
 					@response = response
 					tcp.close
-					@loop.stop
+					@reactor.stop
 				}, @request_failure)
 			}
 
@@ -434,15 +387,7 @@ describe UV::HttpEndpoint do
 
 	describe 'cookies' do
 		it "should accept cookies and send them on subsequent requests" do
-			@loop.run { |logger|
-				logger.progress do |level, errorid, error|
-					begin
-						@general_failure << "Log called: #{level}: #{errorid}\n#{error.message}\n#{error.backtrace.join("\n")}\n"
-					rescue Exception
-						@general_failure << 'error in logger'
-					end
-				end
-
+			@reactor.run { |reactor|
 				tcp = UV.start_server '127.0.0.1', 3250, HttpServer
 				@server = UV::HttpEndpoint.new 'http://127.0.0.1:3250'
 
@@ -451,7 +396,7 @@ describe UV::HttpEndpoint do
 
 				request.then(proc { |response|
 					tcp.close
-					@loop.stop
+					@reactor.stop
 				}, @request_failure)
 			}
 
@@ -463,15 +408,7 @@ describe UV::HttpEndpoint do
 
 	describe 'when things go wrong' do
 		it "should reconnect after connection dropped and continue sending requests" do
-			@loop.run { |logger|
-				logger.progress do |level, errorid, error|
-					begin
-						@general_failure << "Log called: #{level}: #{errorid}\n#{error.message}\n#{error.backtrace.join("\n")}\n"
-					rescue Exception
-						@general_failure << 'error in logger'
-					end
-				end
-
+			@reactor.run { |reactor|
 				tcp = UV.start_server '127.0.0.1', 6353, BrokenServer
 				server = UV::HttpEndpoint.new 'http://127.0.0.1:6353'
 
@@ -479,7 +416,7 @@ describe UV::HttpEndpoint do
 				request = server.get(:path => '/')
 				request.then(proc { |response|
 					@response = response
-					#@loop.stop
+					#@reactor.stop
 				}, proc { |error|
 					@error = error
 				})
@@ -488,7 +425,7 @@ describe UV::HttpEndpoint do
 				request2.then(proc { |response|
 					@response2 = response
 					tcp.close
-					@loop.stop
+					@reactor.stop
 				}, @request_failure)
 			}
 
@@ -505,15 +442,7 @@ describe UV::HttpEndpoint do
 		end
 
 		it "should reconnect after timeout and continue sending requests" do
-			@loop.run { |logger|
-				logger.progress do |level, errorid, error|
-					begin
-						@general_failure << "Log called: #{level}: #{errorid}\n#{error.message}\n#{error.backtrace.join("\n")}\n"
-					rescue Exception
-						@general_failure << 'error in logger'
-					end
-				end
-
+			@reactor.run { |reactor|
 				tcp = UV.start_server '127.0.0.1', 6363, SlowServer
 				server = UV::HttpEndpoint.new 'http://127.0.0.1:6363', inactivity_timeout: 500
 
@@ -521,7 +450,7 @@ describe UV::HttpEndpoint do
 				request = server.get(:path => '/')
 				request.then(proc { |response|
 					@response = response
-					#@loop.stop
+					#@reactor.stop
 				}, proc { |error|
 					@error = error
 				})
@@ -530,7 +459,7 @@ describe UV::HttpEndpoint do
 				request2.then(proc { |response|
 					@response2 = response
 					tcp.close
-					@loop.stop
+					@reactor.stop
 				}, @request_failure)
 			}
 
@@ -547,15 +476,7 @@ describe UV::HttpEndpoint do
 		end
 
 		it "should fail if the server is not available" do
-			@loop.run { |logger|
-				logger.progress do |level, errorid, error|
-					begin
-						@general_failure << "Log called: #{level}: #{errorid}\n#{error.message}\n#{error.backtrace.join("\n")}\n"
-					rescue Exception
-						@general_failure << 'error in logger'
-					end
-				end
-
+			@reactor.run { |reactor|
 				server = UV::HttpEndpoint.new 'http://127.0.0.1:6666', inactivity_timeout: 500
 
 				@response = nil
@@ -564,7 +485,7 @@ describe UV::HttpEndpoint do
 				request = server.get(:path => '/')
 				request.then(proc { |response|
 					@response = response
-					#@loop.stop
+					#@reactor.stop
 				}, proc { |error|
 					@error = error
 				})
@@ -572,10 +493,10 @@ describe UV::HttpEndpoint do
 				request2 = server.get(:path => '/')
 				request2.then(proc { |response|
 					@response2 = response
-					@loop.stop
+					@reactor.stop
 				}, proc { |error|
 					@error2 = error
-					@loop.stop
+					@reactor.stop
 				})
 			}
 

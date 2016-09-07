@@ -79,7 +79,7 @@ module UV
         def initialize(host, options = {})
             @queue = []
             @parser = Http::Parser.new
-            @thread = Libuv::Loop.current || Libuv::Loop.default
+            @thread = reactor
             @connection = nil
 
             @options = @@defaults.merge(options)
