@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 
 # BufferedTokenizer takes a delimiter upon instantiation.
 # It allows input to be spoon-fed from some outside source which receives
@@ -15,7 +16,7 @@
 #     end
 module UV
     class BufferedTokenizer
-        DEFAULT_ENCODING = 'ASCII-8BIT'.freeze
+        DEFAULT_ENCODING = 'ASCII-8BIT'
 
         attr_accessor :delimiter, :indicator, :size_limit, :verbose
 
@@ -30,11 +31,8 @@ module UV
             @encoding   = options[:encoding] || DEFAULT_ENCODING
 
             if @delimiter
-                @delimiter.force_encoding(@encoding) if @delimiter.is_a?(String)
-                @indicator.force_encoding(@encoding) if @indicator.is_a?(String)
                 @extract_method = method(:delimiter_extract)
             elsif @indicator && @msg_length
-                @indicator.force_encoding(@encoding) if @indicator.is_a?(String)
                 @extract_method = method(:length_extract)
             else
                 raise ArgumentError, 'no delimiter provided'
@@ -88,7 +86,7 @@ module UV
             messages = @input.split(@delimiter, -1)
 
             if @indicator
-                @input = messages.pop || ''
+                @input = messages.pop || empty_string
                 entities = []
                 messages.each do |msg|
                     res = msg.split(@indicator, -1)
@@ -96,7 +94,7 @@ module UV
                 end
             else
                 entities = messages
-                @input = entities.pop || ''
+                @input = entities.pop || empty_string
             end
 
             check_buffer_limits
@@ -111,7 +109,7 @@ module UV
             messages = @input.split(@indicator, -1)
             messages.shift # discard junk data
 
-            last = messages.pop || ''
+            last = messages.pop || empty_string
 
             # Select messages of the right size then remove junk data
             messages.select! { |msg| msg.length >= @msg_length ? true : false }
@@ -146,15 +144,27 @@ module UV
         end
 
         def init_buffer
-            @input = ''
-            @input.force_encoding(@encoding)
-            @delimiter.force_encoding(@encoding) if @delimiter.is_a?(String)
-            @indicator.force_encoding(@encoding) if @indicator.is_a?(String)
+            @input = empty_string
+
+            if @delimiter.is_a?(String)
+                @delimiter = String.new(@delimiter).encode(@encoding).freeze
+            end
+
+            if @indicator.is_a?(String)
+                @indicator = String.new(@indicator).encode(@encoding).freeze
+            end
         end
 
-        def reset(value = '')
-            @input = value
-            @input.force_encoding(@encoding)
+        def reset(value = nil)
+            @input = String.new(value || '').force_encoding(@encoding)
+        end
+
+
+        protected
+
+
+        def empty_string
+            String.new.force_encoding(@encoding)
         end
     end
 end

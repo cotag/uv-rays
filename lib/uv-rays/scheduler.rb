@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 
 module UV
 
@@ -28,7 +29,7 @@ module UV
 
         # Provide relevant inspect information
         def inspect
-            insp = "#<#{self.class}:0x#{self.__id__.to_s(16)} "
+            insp = String.new("#<#{self.class}:0x#{self.__id__.to_s(16)} ")
             insp << "trigger_count=#{@trigger_count} "
             insp << "config=#{info} " if self.respond_to?(:info, true)
             insp << "next_scheduled=#{@next_scheduled} "

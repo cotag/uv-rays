@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 
 module UV
 
@@ -6,7 +7,7 @@ module UV
     # callback based system for application level tokenization without
     # the heavy lifting.
     class AbstractTokenizer
-        DEFAULT_ENCODING = 'ASCII-8BIT'.freeze
+        DEFAULT_ENCODING = 'ASCII-8BIT'
 
         attr_accessor :callback, :indicator, :size_limit, :verbose
 
@@ -21,9 +22,10 @@ module UV
             raise ArgumentError, 'no indicator provided' unless @indicator
             raise ArgumentError, 'no callback provided' unless @callback
 
-            @input = ''
-            @input.force_encoding(@encoding)
-            @indicator.force_encoding(@encoding) if @indicator.is_a?(String)
+            reset
+            if @indicator.is_a?(String)
+                @indicator = String.new(@indicator).encode(@encoding).freeze
+            end
         end
 
         # Extract takes an arbitrary string of input data and returns an array of
@@ -101,7 +103,7 @@ module UV
 
 
         def reset
-            @input = ''.force_encoding(@encoding)
+            @input = String.new.force_encoding(@encoding)
         end
     end
 end

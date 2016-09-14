@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module UV
     module Http
         module Encoding
@@ -105,7 +107,7 @@ module UV
             end
 
             def encode_headers(head)
-                head.inject('') do |result, (key, value)|
+                head.inject(String.new) do |result, (key, value)|
                     # Munge keys from foo-bar-baz to Foo-Bar-Baz
                     key = key.split('-').map { |k| k.to_s.capitalize }.join('-')
                     result << case key
@@ -119,7 +121,7 @@ module UV
 
             def encode_cookie(cookie)
                 if cookie.is_a? Hash
-                    cookie.inject('') { |result, (k, v)| result << encode_param(k, v) + ';' }
+                    cookie.inject(String.new) { |result, (k, v)| result << encode_param(k, v) + ';' }
                 else
                     cookie
                 end

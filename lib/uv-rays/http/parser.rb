@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module UV
     module Http
         class Headers < Hash
@@ -57,7 +59,7 @@ module UV
             # Parser Callbacks:
             def on_message_begin(parser)
                 @headers = Headers.new
-                @body = ''
+                @body = String.new
                 @chunked = false
                 @close_connection = false
             end

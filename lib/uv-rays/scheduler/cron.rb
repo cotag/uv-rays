@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 #--
 # Copyright (c) 2006-2013, John Mettraux, jmettraux@gmail.com
 #
