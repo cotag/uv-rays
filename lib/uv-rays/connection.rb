@@ -14,7 +14,7 @@ module UV
                 tcp.start_read
             end
         else
-            tcp.reactor.lookup(server).then(
+            tcp.reactor.lookup(server, wait: false).then(
                 proc { |result|
                     UV.try_connect(tcp, handler, result[0][0], port)
                 },
