@@ -1,4 +1,4 @@
-# frozen_string_literal: true
+# frozen_string_literal: true, encoding: ASCII-8BIT
 
 module UV
     module Http
