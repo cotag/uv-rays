@@ -17,6 +17,9 @@ module UV
             reactor = scheduler.reactor
             defer = reactor.defer
 
+            # Record a backtrace of where the schedule was created
+            @trace = caller
+
             # Setup common event variables
             @scheduler = scheduler
             @created = reactor.now
