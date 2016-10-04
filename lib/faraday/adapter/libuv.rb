@@ -1,11 +1,12 @@
 require 'faraday'
+require 'uv-rays'
+
 
 module Faraday
-  class Adapter
-    class Libuv < Faraday::Adapter
-      dependency 'uv-rays'
-      register_middleware libuv: [:Libuv, 'uv-rays']
+  class Adapter < Middleware
+    register_middleware libuv: :Libuv
 
+    class Libuv < Faraday::Adapter
       def initialize(app, connection_options = {})
         @connection_options = connection_options
         super(app)
@@ -43,7 +44,7 @@ module Faraday
               keepalive: false,
               body: read_body(env))
 
-            save_response(env, resp.status.to_i, resp.body, resp, resp.reason_phrase)
+            save_response(env, resp.status.to_i, resp.body, resp) # , resp.reason_phrase)
           rescue Exception => e
             error = e
           end
