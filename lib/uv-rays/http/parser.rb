@@ -95,6 +95,11 @@ module UV
                     # If chunked we'll buffer streaming data for notification
                     @chunked = data == 'chunked'
 
+                end
+
+                current = @headers[@header]
+                if current
+                    @headers[@header] = "#{current}, #{data}"
                 else
                     @headers[@header] = data
                 end
@@ -141,7 +146,7 @@ module UV
             def eof
                 return if @request.nil?
 
-                if @headers_complete && @headers[:'Content-Length'].nil?
+                if @headers_complete && (@headers[:'Content-Length'].nil? || @request.method == :head)
                     on_message_complete(nil)
                 else
                     # Reject if this is a partial response
