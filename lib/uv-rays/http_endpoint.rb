@@ -108,16 +108,16 @@ module UV
         attr_reader :cookiejar, :middleware
 
 
-        def get      options = {}, &blk;  request(:get,     options, &blk); end
-        def head     options = {}, &blk;  request(:head,    options, &blk); end
-        def delete   options = {}, &blk;  request(:delete,  options, &blk); end
-        def put      options = {}, &blk;  request(:put,     options, &blk); end
-        def post     options = {}, &blk;  request(:post,    options, &blk); end
-        def patch    options = {}, &blk;  request(:patch,   options, &blk); end
-        def options  options = {}, &blk;  request(:options, options, &blk); end
+        def get(options = {});     request(:get,     options); end
+        def head(options = {});    request(:head,    options); end
+        def delete(options = {});  request(:delete,  options); end
+        def put(options = {});     request(:put,     options); end
+        def post(options = {});    request(:post,    options); end
+        def patch(options = {});   request(:patch,   options); end
+        def options(options = {}); request(:options, options); end
 
 
-        def request(method, options = {}, &blk)
+        def request(method, options = {})
             options = @options.merge(options)
             options[:method] = method
 

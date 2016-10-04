@@ -9,6 +9,9 @@ module UV
             # The status code (as an integer)
             attr_accessor :status
 
+            # The text after the status code
+            attr_accessor :reason_phrase
+
             # Cookies at the time of the request
             attr_accessor :cookies
 
@@ -65,6 +68,8 @@ module UV
             end
 
             def on_status(parser, data)
+                @headers.reason_phrase = data
+
                 # Different HTTP versions have different defaults
                 if @state.http_minor == 0
                     @close_connection = true

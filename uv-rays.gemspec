@@ -19,7 +19,7 @@ Gem::Specification.new do |gem|
     gem.add_runtime_dependency     'cookiejar', '~> 0.3'   # HTTP cookies
     gem.add_runtime_dependency     'ipaddress', '~> 0.8'   # IP address validation
     gem.add_runtime_dependency     'addressable', '~> 2.4' # URI parser
-    gem.add_runtime_dependency     'http-parser', '~> 1.1' # HTTP tokeniser
+    gem.add_runtime_dependency     'http-parser', '~> 1.2' # HTTP tokeniser
 
     # HTTP authentication helpers
     gem.add_runtime_dependency     'rubyntlm', '~> 0.6'
