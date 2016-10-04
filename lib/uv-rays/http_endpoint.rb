@@ -42,7 +42,7 @@ module UV
                 use_tls(client.tls_options) if tls
             end
 
-            attr_accessor :request
+            attr_accessor :request, :reason
 
             def on_read(data, *args) # user to define
                 @client.data_received(data)
@@ -58,7 +58,7 @@ module UV
             def on_close # user to define
                 req = @request
                 @request = nil
-                @client.connection_closed(req)
+                @client.connection_closed(req, @reason)
             end
 
             def close_connection(request = nil)
@@ -156,7 +156,7 @@ module UV
             end
         end
 
-        def connection_closed(request)
+        def connection_closed(request, reason)
             # We may have closed a previous connection
             if @parser.request && (request.nil? || request == @parser.request)
                 @connection = nil
@@ -165,7 +165,7 @@ module UV
                 @parser.eof
             elsif request.nil? && @parser.request.nil? && @queue.length > 0
                 req = @queue.pop
-                req.reject :connection_failure
+                req.reject(reason || :connection_failure)
             end
         end
 
@@ -235,7 +235,8 @@ module UV
         end
 
         def idle_timeout
-            @parser.reason = :timeout
+            @parser.reason = :timeout if @parser.request
+            @connection.reason = :timeout
             close_connection
         end
     end
