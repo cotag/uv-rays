@@ -35,20 +35,15 @@ module Faraday
         end
 
         error = nil
-        reactor.run {
-          begin
-            conn = ::UV::HttpEndpoint.new(env[:url].to_s, opts.merge(@connection_options))
-            resp = co conn.request(env[:method].to_s.downcase.to_sym,
-              headers: env[:request_headers],
-              path: "/#{env[:url].to_s.split('/', 4)[-1]}",
-              keepalive: false,
-              body: read_body(env))
-
-            save_response(env, resp.status.to_i, resp.body, resp) # , resp.reason_phrase)
-          rescue Exception => e
-            error = e
-          end
-        }
+        thread = reactor
+        if thread.running?
+          error = perform_request(env, opts)
+        else
+          # Pretty much here for testing
+          thread.run {
+            error = perform_request(env, opts)
+          }
+        end
 
         # Re-raise the error out of the event loop
         # Really this is only required for tests as this will always run on the reactor
@@ -66,6 +61,20 @@ module Faraday
       def read_body(env)
         env[:body].respond_to?(:read) ? env[:body].read : env[:body]
       end
+    end
+
+    def perform_request(env, opts)
+      conn = ::UV::HttpEndpoint.new(env[:url].to_s, opts.merge!(@connection_options))
+      resp = co conn.request(env[:method].to_s.downcase.to_sym,
+        headers: env[:request_headers],
+        path: "/#{env[:url].to_s.split('/', 4)[-1]}",
+        keepalive: false,
+        body: read_body(env))
+
+      save_response(env, resp.status.to_i, resp.body, resp) #, resp.reason_phrase)
+      nil
+    rescue Exception => e
+      e
     end
   end
 end
