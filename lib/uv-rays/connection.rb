@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 
 module UV
     def self.try_connect(tcp, handler, server, port)
@@ -13,12 +14,12 @@ module UV
                 tcp.start_read
             end
         else
-            tcp.loop.lookup(server).then(
+            tcp.reactor.lookup(server, wait: false).then(
                 proc { |result|
                     UV.try_connect(tcp, handler, result[0][0], port)
                 },
                 proc { |failure|
-                    # TODO:: Log error on loop
+                    # TODO:: Log error on reactor
                     handler.on_close
                 }
             )
@@ -64,7 +65,7 @@ module UV
 
     class TcpConnection < Connection
         def write(data)
-            @transport.write(data)
+            @transport.write(data, wait: :promise)
         end
 
         def close_connection(after_writing = false)
@@ -76,9 +77,8 @@ module UV
         end
 
         def stream_file(filename, type = :raw)
-            file = @loop.file(filename, File::RDONLY)
-            file.progress do    # File is open and available for reading
-                file.send_file(@transport, type).finally do
+            file = @reactor.file(filename, File::RDONLY) do    # File is open and available for reading
+                file.send_file(@transport, type, wait: :promise).finally do
                     file.close
                 end
             end
@@ -105,7 +105,7 @@ module UV
         def initialize(tcp)
             super()
 
-            @loop = tcp.loop
+            @reactor = tcp.reactor
             @transport = tcp
             @transport.finally method(:on_close)
             @transport.progress method(:on_read)
@@ -127,10 +127,10 @@ module UV
         def initialize(server, port)
             super()
 
-            @loop = Libuv::Loop.current || Libuv::Loop.default
+            @reactor = reactor
             @server = server
             @port = port
-            @transport = @loop.tcp
+            @transport = @reactor.tcp
 
             ::UV.try_connect(@transport, self, @server, @port)
         end
@@ -146,9 +146,9 @@ module UV
         end
 
         def reconnect(server = nil, port = nil)
-            @loop = Libuv::Loop.current || @loop
+            @reactor = reactor
 
-            @transport = @loop.tcp
+            @transport = @reactor.tcp
             @server = server || @server
             @port = port || @port
 
@@ -160,8 +160,8 @@ module UV
         def initialize(server = nil, port = nil)
             super()
 
-            @loop = Libuv::Loop.current || Libuv::Loop.default
-            @transport = @loop.udp
+            @reactor = reactor
+            @transport = @reactor.udp
             @transport.progress method(:on_read)
 
             if not server.nil?
@@ -182,7 +182,7 @@ module UV
             else
                 # Async DNS resolution
                 # Note:: send here will chain the promise
-                @loop.lookup(recipient_address).then do |result|
+                @reactor.lookup(recipient_address).then do |result|
                     @transport.send result[0][0], recipient_port, data
                 end
             end

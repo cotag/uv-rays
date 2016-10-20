@@ -27,26 +27,25 @@ Run `gem install uv-rays` to install
 Here's a fully-functional echo server written with UV-Rays:
 
 ```ruby
-
  require 'uv-rays'
 
  module EchoServer
-   def post_init
-     puts "-- someone connected to the echo server!"
-   end
+  def on_connect(socket)
+    @ip, @port = socket.peername
+    logger.info "-- #{@ip}:#{@port} connected"
+  end
 
-   def on_read data, *args
-     write ">>>you sent: #{data}"
-     close_connection if data =~ /quit/i
-   end
+  def on_read(data, socket)
+    write ">>>you sent: #{data}"
+    close_connection if data =~ /quit/i
+  end
 
-   def on_close
-     puts "-- someone disconnected from the echo server!"
-   end
+  def on_close
+    puts "-- #{@ip}:#{@port} disconnected"
+  end
 end
 
-# Note that this will block current thread.
-Libuv::Loop.default.run {
+reactor {
   UV.start_server "127.0.0.1", 8081, EchoServer
 }
 

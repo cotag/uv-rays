@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'uri'
 
 module UV
@@ -40,7 +42,7 @@ module UV
                 use_tls(client.tls_options) if tls
             end
 
-            attr_accessor :request
+            attr_accessor :request, :reason
 
             def on_read(data, *args) # user to define
                 @client.data_received(data)
@@ -56,7 +58,7 @@ module UV
             def on_close # user to define
                 req = @request
                 @request = nil
-                @client.connection_closed(req)
+                @client.connection_closed(req, @reason)
             end
 
             def close_connection(request = nil)
@@ -79,7 +81,7 @@ module UV
         def initialize(host, options = {})
             @queue = []
             @parser = Http::Parser.new
-            @thread = Libuv::Loop.current || Libuv::Loop.default
+            @thread = reactor
             @connection = nil
 
             @options = @@defaults.merge(options)
@@ -106,16 +108,16 @@ module UV
         attr_reader :cookiejar, :middleware
 
 
-        def get      options = {}, &blk;  request(:get,     options, &blk); end
-        def head     options = {}, &blk;  request(:head,    options, &blk); end
-        def delete   options = {}, &blk;  request(:delete,  options, &blk); end
-        def put      options = {}, &blk;  request(:put,     options, &blk); end
-        def post     options = {}, &blk;  request(:post,    options, &blk); end
-        def patch    options = {}, &blk;  request(:patch,   options, &blk); end
-        def options  options = {}, &blk;  request(:options, options, &blk); end
+        def get(options = {});     request(:get,     options); end
+        def head(options = {});    request(:head,    options); end
+        def delete(options = {});  request(:delete,  options); end
+        def put(options = {});     request(:put,     options); end
+        def post(options = {});    request(:post,    options); end
+        def patch(options = {});   request(:patch,   options); end
+        def options(options = {}); request(:options, options); end
 
 
-        def request(method, options = {}, &blk)
+        def request(method, options = {})
             options = @options.merge(options)
             options[:method] = method
 
@@ -154,7 +156,7 @@ module UV
             end
         end
 
-        def connection_closed(request)
+        def connection_closed(request, reason)
             # We may have closed a previous connection
             if @parser.request && (request.nil? || request == @parser.request)
                 @connection = nil
@@ -163,7 +165,7 @@ module UV
                 @parser.eof
             elsif request.nil? && @parser.request.nil? && @queue.length > 0
                 req = @queue.pop
-                req.reject :connection_failure
+                req.reject(reason || :connection_failure)
             end
         end
 
@@ -233,7 +235,8 @@ module UV
         end
 
         def idle_timeout
-            @parser.reason = :timeout
+            @parser.reason = :timeout if @parser.request
+            @connection.reason = :timeout
             close_connection
         end
     end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 
 module UV
 
@@ -13,22 +14,25 @@ module UV
 
         def initialize(scheduler)
             # Create a dummy deferrable
-            loop = scheduler.loop
-            defer = loop.defer
+            reactor = scheduler.reactor
+            defer = reactor.defer
+
+            # Record a backtrace of where the schedule was created
+            @trace = caller
 
             # Setup common event variables
             @scheduler = scheduler
-            @created = loop.now
+            @created = reactor.now
             @last_scheduled = @created
             @trigger_count = 0
 
             # init the promise
-            super(loop, defer)
+            super(reactor, defer)
         end
 
         # Provide relevant inspect information
         def inspect
-            insp = "#<#{self.class}:0x#{self.__id__.to_s(16)} "
+            insp = String.new("#<#{self.class}:0x#{self.__id__.to_s(16)} ")
             insp << "trigger_count=#{@trigger_count} "
             insp << "config=#{info} " if self.respond_to?(:info, true)
             insp << "next_scheduled=#{@next_scheduled} "
@@ -51,7 +55,7 @@ module UV
         # notify listeners of the event
         def trigger
             @trigger_count += 1
-            @defer.notify(@loop.now, self)
+            @defer.notify(@reactor.now, self)
         end
     end
 
@@ -64,7 +68,7 @@ module UV
 
         # Updates the scheduled time
         def update(time)
-            @last_scheduled = @loop.now
+            @last_scheduled = @reactor.now
             
             parsed_time = Scheduler.parse_in(time, :quiet)
             if parsed_time.nil?
@@ -114,14 +118,14 @@ module UV
         # can be used to reset a repeating timer
         def resume
             @paused = false
-            @last_scheduled = @loop.now
+            @last_scheduled = @reactor.now
             reschedule
         end
 
         # Runs the event and reschedules
         def trigger
             super()
-            @loop.next_tick do
+            @reactor.next_tick do
                 # Do this next tick to avoid needless scheduling
                 # if the event is stopped in the callback
                 reschedule
@@ -133,7 +137,7 @@ module UV
 
 
         def next_time
-            @last_scheduled = @loop.now
+            @last_scheduled = @reactor.now
             if @every.is_a? Fixnum
                 @next_scheduled = @last_scheduled + @every
             else
@@ -156,13 +160,13 @@ module UV
 
 
     class Scheduler
-        attr_reader :loop
+        attr_reader :reactor
         attr_reader :time_diff
         attr_reader :next
 
 
-        def initialize(loop)
-            @loop = loop
+        def initialize(reactor)
+            @reactor = reactor
             @schedules = Set.new
             @scheduled = []
             @next = nil     # Next schedule time
@@ -174,8 +178,8 @@ module UV
 
             # as the libuv time is taken from an arbitrary point in time we
             # need to roughly synchronize between it and ruby's Time.now
-            @loop.update_time
-            @time_diff = (Time.now.to_f * 1000).to_i - @loop.now
+            @reactor.update_time
+            @time_diff = (Time.now.to_f * 1000).to_i - @reactor.now
         end
 
 
@@ -203,7 +207,7 @@ module UV
         # @return [::UV::OneShot]
         def in(time, callback = nil, &block)
             callback ||= block
-            ms = @loop.now + Scheduler.parse_in(time)
+            ms = @reactor.now + Scheduler.parse_in(time)
             event = OneShot.new(self, ms)
 
             if callback.respond_to? :call
@@ -315,7 +319,7 @@ module UV
         # Ensures the current timer, if any, is still
         # accurate by checking the head of the schedule
         def check_timer
-            @loop.update_time
+            @reactor.update_time
             
             existing = @next
             schedule = @scheduled.first
@@ -330,7 +334,7 @@ module UV
                 end
 
                 if not @next.nil?
-                    in_time = @next - @loop.now
+                    in_time = @next - @reactor.now
 
                     # Ensure there are never negative start times
                     if in_time > 3
@@ -352,7 +356,7 @@ module UV
 
                 # execute schedules that are within 3ms of this event
                 # Basic timer coalescing..
-                now = @loop.now + 3
+                now = @reactor.now + 3
                 while @scheduled.first && @scheduled.first.next_scheduled <= now
                     schedule = @scheduled.shift
                     @schedules.delete(schedule)
@@ -364,7 +368,7 @@ module UV
 
         # Provide some assurances on timer failure
         def new_timer
-            @timer = @loop.timer @timer_callback
+            @timer = @reactor.timer @timer_callback
             @timer.finally do
                 new_timer
                 unless @next.nil?
@@ -376,9 +380,9 @@ module UV
 end
 
 module Libuv
-    class Loop
+    class Reactor
         def scheduler
-            @scheduler ||= UV::Scheduler.new(@loop)
+            @scheduler ||= UV::Scheduler.new(@reactor)
             @scheduler
         end
     end

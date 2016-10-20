@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module UV
     module Http
         class Headers < Hash
@@ -6,6 +8,9 @@ module UV
 
             # The status code (as an integer)
             attr_accessor :status
+
+            # The text after the status code
+            attr_accessor :reason_phrase
 
             # Cookies at the time of the request
             attr_accessor :cookies
@@ -57,12 +62,14 @@ module UV
             # Parser Callbacks:
             def on_message_begin(parser)
                 @headers = Headers.new
-                @body = ''
+                @body = String.new
                 @chunked = false
                 @close_connection = false
             end
 
             def on_status(parser, data)
+                @headers.reason_phrase = data
+
                 # Different HTTP versions have different defaults
                 if @state.http_minor == 0
                     @close_connection = true
@@ -88,6 +95,11 @@ module UV
                     # If chunked we'll buffer streaming data for notification
                     @chunked = data == 'chunked'
 
+                end
+
+                current = @headers[@header]
+                if current
+                    @headers[@header] = "#{current}, #{data}"
                 else
                     @headers[@header] = data
                 end
@@ -134,7 +146,7 @@ module UV
             def eof
                 return if @request.nil?
 
-                if @headers_complete && @headers[:'Content-Length'].nil?
+                if @headers_complete && (@headers[:'Content-Length'].nil? || @request.method == :head)
                     on_message_complete(nil)
                 else
                     # Reject if this is a partial response

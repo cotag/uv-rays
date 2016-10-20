@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 #--
 # Copyright (c) 2006-2013, John Mettraux, jmettraux@gmail.com
 #
@@ -198,7 +200,7 @@ module UV
 
             return (options[:drop_seconds] ? '0m' : '0s') if h.empty?
 
-            s = DU_KEYS.inject('') { |r, key|
+            s = DU_KEYS.inject(String.new) { |r, key|
                 count = h[key]
                 count = nil if count == 0
                 r << "#{count}#{key}" if count
