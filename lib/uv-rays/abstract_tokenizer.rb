@@ -19,7 +19,6 @@ module UV
             @verbose  = options[:verbose] if @size_limit
             @encoding   = options[:encoding] || DEFAULT_ENCODING
 
-            raise ArgumentError, 'no indicator provided' unless @indicator
             raise ArgumentError, 'no callback provided' unless @callback
 
             reset
@@ -46,16 +45,23 @@ module UV
             loop do
                 found = false
 
-                check = @input.partition(@indicator)
-                break unless check[1].length > 0
+                last = if @indicator
+                    check = @input.partition(@indicator)
+                    break unless check[1].length > 0
 
-                last = check[2]
+                    check[2]
+                else
+                    @input
+                end
+
                 result = @callback.call(last)
+
                 if result
                     found = true
 
                     # Check for multi-byte indicator edge case
-                    if result.is_a? Fixnum
+                    case result
+                    when Integer, Fixnum
                         entities << last[0...result]
                         @input = last[result..-1]
                     else

@@ -104,4 +104,26 @@ describe UV::AbstractTokenizer do
         expect(result).to eq(['Star', '1234'])
         expect(@buffer.flush).to eq('56')    # as we've indicated a message length of 4
     end
+
+    it "should work with messages that don't have an indicator" do
+        # i.e. there is a header that defines message length
+        msg1 = "\x0612345\x081234567\x031"
+
+        @buffer = UV::AbstractTokenizer.new({
+            callback: lambda { |data|
+                len = data.bytes[0]
+                if data.length >= len
+                    len
+                else
+                    false
+                end
+            },
+            size_limit: 10,
+            encoding: "ASCII-8BIT"
+        })
+
+        result = @buffer.extract(msg1)
+        expect(result).to eq(["\x0612345", "\x081234567"])
+        expect(@buffer.flush).to eq("\x031")    # as we've indicated a message length of 3
+    end
 end
