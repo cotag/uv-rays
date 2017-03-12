@@ -147,11 +147,11 @@ module UV
             @input = empty_string
 
             if @delimiter.is_a?(String)
-                @delimiter = String.new(@delimiter).encode(@encoding).freeze
+                @delimiter = String.new(@delimiter).force_encoding(@encoding).freeze
             end
 
             if @indicator.is_a?(String)
-                @indicator = String.new(@indicator).encode(@encoding).freeze
+                @indicator = String.new(@indicator).force_encoding(@encoding).freeze
             end
         end
 

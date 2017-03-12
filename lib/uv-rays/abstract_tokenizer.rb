@@ -23,7 +23,7 @@ module UV
 
             reset
             if @indicator.is_a?(String)
-                @indicator = String.new(@indicator).encode(@encoding).freeze
+                @indicator = String.new(@indicator).force_encoding(@encoding).freeze
             end
         end
 
