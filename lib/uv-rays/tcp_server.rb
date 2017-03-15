@@ -8,7 +8,7 @@ module UV
             @klass = klass
             @args = args
 
-            if server == port && port.is_a?(Fixnum)
+            if server == port && port.is_a?(Integer)
                 # We are opening a socket descriptor
                 open(server)
             else

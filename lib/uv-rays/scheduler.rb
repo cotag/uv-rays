@@ -138,7 +138,7 @@ module UV
 
         def next_time
             @last_scheduled = @reactor.now
-            if @every.is_a? Fixnum
+            if @every.is_a? Integer
                 @next_scheduled = @last_scheduled + @every
             else
                 # must be a cron

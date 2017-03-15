@@ -76,7 +76,7 @@ module UV
 
                 raise ArgumentError.new(
                   "invalid cronline: '#{line}'"
-                ) if es && es.find { |e| ! e.is_a?(Fixnum) }
+                ) if es && es.find { |e| ! e.is_a?(Integer) }
               end
             end
 
@@ -268,7 +268,7 @@ module UV
                 end
               end
 
-              weekdays = weekdays.uniq if weekdays
+              weekdays = weekdays.uniq.sort if weekdays
 
               [ weekdays, monthdays ]
             end
@@ -283,6 +283,7 @@ module UV
                 "found duplicates in #{item.inspect}"
               ) if r.uniq.size < r.size
 
+              r = r.sort_by { |e| e.is_a?(String) ? 61 : e.to_i }
               r
             end
 

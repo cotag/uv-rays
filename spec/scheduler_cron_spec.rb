@@ -28,8 +28,8 @@ describe UV::Scheduler::CronLine do
 
         it 'interprets cron strings correctly' do
 
-            to_a '* * * * *', [ [0], nil, nil, nil, nil, nil, nil, nil ]
-            to_a '10-12 * * * *', [ [0], [10, 11, 12], nil, nil,    nil, nil, nil, nil ]
+            to_a '* * * * *',       [ [0], nil, nil, nil, nil, nil, nil, nil ]
+            to_a '10-12 * * * *', [ [0], [10, 11, 12], nil, nil, nil, nil, nil, nil ]
             to_a '* * * * sun,mon', [ [0], nil, nil, nil, nil, [0, 1], nil, nil ]
             to_a '* * * * mon-wed', [ [0], nil, nil, nil, nil, [1, 2, 3], nil, nil ]
             to_a '* * * * 7', [ [0], nil, nil, nil, nil, [0], nil, nil ]
@@ -40,6 +40,7 @@ describe UV::Scheduler::CronLine do
             to_a '* * * * sun,2-4', [ [0], nil, nil, nil, nil, [0, 2, 3, 4], nil, nil ]
 
             to_a '* * * * sun,mon-tue', [ [0], nil, nil, nil, nil, [0, 1, 2], nil, nil ]
+            to_a '0 0 * * mon#1,tue', [[0], [0], [0], nil, nil, [2], ["mon#1"], nil]
 
             to_a '* * * * * *', [ nil, nil, nil, nil, nil, nil, nil, nil ]
             to_a '1 * * * * *', [ [1], nil, nil, nil, nil, nil, nil, nil ]
@@ -48,12 +49,22 @@ describe UV::Scheduler::CronLine do
 
             to_a '0 0 1 1 *', [ [0], [0], [0], [1], [1], nil, nil, nil ]
 
-            to_a '0 23-24 * * *', [ [0], [0], [23, 0], nil, nil, nil, nil, nil ]
-                #
-                # as reported by Aimee Rose in
-                # https://github.com/jmettraux/rufus-scheduler/issues/56
+            to_a '52 0 * * *', [ [0], [52], [0], nil, nil, nil, nil, nil ]
 
-            to_a '0 23-2 * * *', [ [0], [0], [23, 0, 1, 2], nil, nil, nil, nil, nil ]
+            to_a '0 16 * * *', [ [0], [0], [16], nil, nil, nil, nil, nil ]
+
+            to_a '0 23-24 * * *', [ [0], [0], [0, 23], nil, nil, nil, nil, nil ]
+
+            to_a '0 23-2 * * *', [ [0], [0], [0, 1, 2, 23], nil, nil, nil, nil, nil ]
+
+            # modulo forms work for five-field forms
+            to_a '*/17 * * * *', [[0], [0, 17, 34, 51], nil, nil, nil, nil, nil, nil]
+            to_a '13 */17 * * *', [[0], [13], [0, 17], nil, nil, nil, nil, nil]
+
+            # modulo forms work for six-field forms
+            to_a '*/17 * * * * *', [[0, 17, 34, 51], nil, nil, nil, nil, nil, nil, nil]
+            to_a '13 */17 * * * *', [[13], [0, 17, 34, 51], nil, nil, nil, nil, nil, nil]
+
         end
 
         it 'rejects invalid weekday expressions' do
