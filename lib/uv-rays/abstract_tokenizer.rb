@@ -61,7 +61,7 @@ module UV
 
                     # Check for multi-byte indicator edge case
                     case result
-                    when Integer, Fixnum
+                    when Integer
                         entities << last[0...result]
                         @input = last[result..-1]
                     else
