@@ -80,6 +80,10 @@ module UV
               end
             end
 
+            def inspect
+                "#<CronLine:#{"0x00%x" % (self.__id__ << 1)} cron=#{@original.inspect} next_time=#{next_time.to_i} previous_time=#{previous_time.to_i}>"
+            end
+
             # Returns true if the given time matches this cron line.
             #
             def matches?(time)

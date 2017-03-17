@@ -32,14 +32,22 @@ module UV
 
         # Provide relevant inspect information
         def inspect
-            insp = String.new("#<#{self.class}:0x#{self.__id__.to_s(16)} ")
+            insp = String.new("#<#{self.class}:#{"0x00%x" % (self.__id__ << 1)} ")
             insp << "trigger_count=#{@trigger_count} "
             insp << "config=#{info} " if self.respond_to?(:info, true)
-            insp << "next_scheduled=#{@next_scheduled} "
-            insp << "last_scheduled=#{@last_scheduled} created=#{@created}>"
+            insp << "next_scheduled=#{to_time(@next_scheduled)} "
+            insp << "last_scheduled=#{to_time(@last_scheduled)} created=#{to_time(@created)}>"
             insp
         end
         alias_method :to_s, :inspect
+
+        def to_time(internal_time)
+            if internal_time
+                ((internal_time + @scheduler.time_diff) / 1000).to_i
+            else
+                internal_time
+            end
+        end
 
 
         # required for comparable
@@ -154,7 +162,7 @@ module UV
         end
 
         def info
-            "repeat:#{@every}"
+            "repeat:#{@every.inspect}"
         end
     end
 
