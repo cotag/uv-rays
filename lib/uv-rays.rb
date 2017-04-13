@@ -7,7 +7,6 @@ require 'libuv'
 require 'set'               # ruby std lib
 require 'bisect'            # insert into a sorted array
 require 'tzinfo'            # timezone information
-require 'uv-rays/scheduler/cron'
 require 'uv-rays/scheduler/time'
 require 'uv-rays/scheduler'
 

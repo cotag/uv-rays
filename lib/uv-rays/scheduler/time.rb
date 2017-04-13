@@ -24,9 +24,35 @@
 # Made in Japan.
 #++
 
+require 'parse-cron'
+
 
 module UV
     class Scheduler
+
+        # Thread safe timezone time class for use with parse-cron
+        class TimeInZone
+            def initialize(timezone)
+                @timezone = timezone
+            end
+
+            def now
+                time = nil
+                Time.use_zone(@timezone) do
+                    time = Time.now
+                end
+                time
+            end
+
+            def local(*args)
+                result = nil
+                Time.use_zone(@timezone) do
+                    result = Time.local(*args)
+                end
+                result
+            end
+        end
+
 
         def self.parse_in(o, quiet = false)
             # if o is an integer we are looking at ms
@@ -60,8 +86,13 @@ module UV
             raise se
         end
 
-        def self.parse_cron(o, quiet = false)
-            CronLine.new(o)
+        def self.parse_cron(o, quiet = false, timezone: nil)
+            if timezone
+                tz = TimeInZone.new(timezone)
+                CronParser.new(o, tz)
+            else
+                CronParser.new(o)
+            end
 
         rescue ArgumentError => ae
             return nil if quiet
@@ -81,13 +112,13 @@ module UV
         end
 
         DURATIONS2M = [
-          [ 'y', 365 * 24 * 3600 * 1000 ],
-          [ 'M', 30 * 24 * 3600 * 1000 ],
-          [ 'w', 7 * 24 * 3600 * 1000 ],
-          [ 'd', 24 * 3600 * 1000 ],
-          [ 'h', 3600 * 1000 ],
-          [ 'm', 60 * 1000 ],
-          [ 's', 1000 ]
+            [ 'y', 365 * 24 * 3600 * 1000 ],
+            [ 'M', 30 * 24 * 3600 * 1000 ],
+            [ 'w', 7 * 24 * 3600 * 1000 ],
+            [ 'd', 24 * 3600 * 1000 ],
+            [ 'h', 3600 * 1000 ],
+            [ 'm', 60 * 1000 ],
+            [ 's', 1000 ]
         ]
         DURATIONS2 = DURATIONS2M.dup
         DURATIONS2.delete_at(1)

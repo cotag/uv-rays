@@ -108,8 +108,8 @@ module UV
         # Update the time period of the repeating event
         #
         # @param schedule [String] a standard CRON job line or a human readable string representing a time period.
-        def update(every)
-            time = Scheduler.parse_in(every, :quiet) || Scheduler.parse_cron(every, :quiet)
+        def update(every, timezone: nil)
+            time = Scheduler.parse_in(every, :quiet) || Scheduler.parse_cron(every, :quiet, timezone: timezone)
             raise ArgumentError.new("couldn't parse \"#{o}\"") if time.nil?
 
             @every = time
@@ -150,7 +150,7 @@ module UV
                 @next_scheduled = @last_scheduled + @every
             else
                 # must be a cron
-                @next_scheduled = (@every.next_time.to_f * 1000).to_i - @scheduler.time_diff
+                @next_scheduled = (@every.next.to_f * 1000).to_i - @scheduler.time_diff
             end
         end
 
@@ -184,12 +184,18 @@ module UV
             # Not really required when used correctly
             @critical = Mutex.new
 
-            # as the libuv time is taken from an arbitrary point in time we
-            # need to roughly synchronize between it and ruby's Time.now
+            # Every hour we should re-calibrate this (just in case)
+            calibrate_time
+            every(3600000) { calibrate_time }
+        end
+
+
+        # As the libuv time is taken from an arbitrary point in time we
+        #  need to roughly synchronize between it and ruby's Time.now
+        def calibrate_time
             @reactor.update_time
             @time_diff = (Time.now.to_f * 1000).to_i - @reactor.now
         end
-
 
         # Create a repeating event that occurs each time period
         #
@@ -247,9 +253,9 @@ module UV
         # @param schedule [String] a standard CRON job line.
         # @param callback [Proc] a block or method to execute when the event triggers
         # @return [::UV::Repeat]
-        def cron(schedule, callback = nil, &block)
+        def cron(schedule, callback = nil, timezone: nil , &block)
             callback ||= block
-            ms = Scheduler.parse_cron(schedule)
+            ms = Scheduler.parse_cron(schedule, timezone: timezone)
             event = Repeat.new(self, ms)
 
             if callback.respond_to? :call
