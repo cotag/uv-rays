@@ -39,7 +39,11 @@ module UV
                 @client = client
                 @request = nil
                 super(host, port)
-                use_tls(client.tls_options) if tls
+
+                if tls
+                    opts = {host_name: host}.merge(client.tls_options)
+                    use_tls(opts)
+                end
             end
 
             attr_accessor :request, :reason
