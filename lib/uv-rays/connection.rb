@@ -166,11 +166,8 @@ module UV
 
             if not server.nil?
                 server = '127.0.0.1' if server == 'localhost'
-                if IPAddress.valid? server
-                    @transport.bind(server, port)
-                else
-                    raise ArgumentError, "Invalid server address #{server}"
-                end
+                raise ArgumentError, "Invalid server address #{server}" unless IPAddress.valid?(server)
+                @transport.bind(server, port)
             end
 
             @transport.start_read
