@@ -186,7 +186,13 @@ module UV
 
             # Every hour we should re-calibrate this (just in case)
             calibrate_time
-            every(3600000) { calibrate_time }
+
+            @calibrate = @reactor.timer do
+                calibrate_time
+                @calibrate.start(3600000)
+            end
+            @calibrate.start(3600000)
+            @calibrate.unref
         end
 
 
