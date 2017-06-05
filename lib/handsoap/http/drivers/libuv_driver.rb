@@ -9,7 +9,7 @@ module Handsoap
                 end
 
                 def send_http_request_async(request)
-                    endp = ::UV::HttpEndpoint.new(request)
+                    endp = ::UV::HttpEndpoint.new(request.url)
 
                     if request.username && request.password
                         request.headers['Authorization'] = [request.username, request.password]
