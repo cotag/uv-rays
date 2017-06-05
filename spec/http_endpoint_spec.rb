@@ -218,6 +218,52 @@ describe UV::HttpEndpoint do
 			expect(@response.body).to eq('y')
 		end
 
+		it 'should be garbage collected', mri_only: true do
+			require 'weakref'
+			require 'objspace'
+
+			objs = nil
+			obj_id = nil
+
+			@reactor.run { |reactor|
+				tcp = UV.start_server '127.0.0.1', 3250, HttpServer
+				block = proc {
+					server = UV::HttpEndpoint.new 'http://127.0.0.1:3250', inactivity_timeout: 300
+					obj_id = server.object_id
+					objs = WeakRef.new(server)
+
+					request = server.get(:path => '/whatwhat')
+					request.catch(@request_failure)
+					request.finally {
+						tcp.close
+						@timeout.stop
+					}
+
+					server = nil
+					request = nil
+				}
+
+				block.call
+
+				reactor.scheduler.in(800) do
+					GC.start
+					ObjectSpace.garbage_collect
+				end
+			}
+			ObjectSpace.garbage_collect
+			GC.start
+
+			expect(@general_failure).to eq([])
+
+			begin
+				expect(objs.weakref_alive?).to eq(nil)
+			rescue Exception => e
+				objs = ObjectSpace.each_object.select{ |o| ObjectSpace.reachable_objects_from(o).map(&:object_id).include?(obj_id) }
+				puts "Objects referencing HTTP class:\n#{objs.inspect}\n"
+				raise e
+			end
+		end
+
 		it "should return the response when no length is given and the connection is closed" do
 			# I've seen IoT devices do this (projector screen controllers etc)
 			@reactor.run { |reactor|

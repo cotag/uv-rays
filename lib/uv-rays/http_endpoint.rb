@@ -60,9 +60,11 @@ module UV
             end
 
             def on_close # user to define
-                req = @request
+                @client.connection_closed(@request, @reason)
+            ensure
                 @request = nil
-                @client.connection_closed(req, @reason)
+                @client = nil
+                @reason = nil
             end
 
             def close_connection(request = nil)
@@ -91,11 +93,6 @@ module UV
             @options = @@defaults.merge(options)
             @tls_options = options[:tls_options] || {}
             @inactivity_timeout = options[:inactivity_timeout] || 10000
-            @idle_timeout_method = method(:idle_timeout)
-
-            if @inactivity_timeout > 0
-                @timer = @thread.timer
-            end
 
             uri = URI.parse host
             @port = uri.port
@@ -225,17 +222,17 @@ module UV
 
 
         def start_timer
-            return if @timer.nil?
-            @timer.progress @idle_timeout_method
-            @timer.start @inactivity_timeout
+            @timer.cancel if @timer
+            @timer = @thread.scheduler.in(@inactivity_timeout) do
+                @timer = nil
+                idle_timeout
+            end
         end
-
-        def restart_timer
-            @timer.again unless @timer.nil?
-        end
+        alias_method :restart_timer, :start_timer
 
         def stop_timer
-            @timer.stop unless @timer.nil?
+            @timer.cancel unless @timer.nil?
+            @timer = nil
         end
 
         def idle_timeout

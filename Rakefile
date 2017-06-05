@@ -8,7 +8,7 @@ require 'yard'                  # yard documentation
 task :default => :limited_spec
 RSpec::Core::RakeTask.new(:limited_spec) do |t|
     # Exclude network tests
-    t.rspec_opts = "--tag ~network" 
+    t.rspec_opts = "--tag ~network --tag ~mri_only"
 end
 RSpec::Core::RakeTask.new(:spec)
 

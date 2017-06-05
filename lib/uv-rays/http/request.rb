@@ -20,27 +20,38 @@ module UV
 
 
             def cookies_hash
-                @endpoint.cookiejar.get_hash(@uri)
+                @cookiejar.get_hash(@uri)
             end
 
             def set_cookie(value)
-                @endpoint.cookiejar.set(@uri, value)
+                @cookiejar.set(@uri, value)
             end
 
 
             def initialize(endpoint, options)
                 super(endpoint.thread, endpoint.thread.defer)
 
+                @path = options[:path]
+                @method = options[:method]
+
+                @host = endpoint.host
+                @port = endpoint.port
+                @cookiejar = endpoint.cookiejar
+                @middleware = endpoint.middleware
+                @uri = "#{endpoint.scheme}://#{encode_host(@host, @port)}#{@path}"
+                endpoint = nil
+
                 @options = options
-                @endpoint = endpoint
                 @ntlm_creds = options[:ntlm]
                 @digest_creds = options[:digest]
                 @challenge_retries = 0
 
-                @path = options[:path]
-                @method = options[:method]
-                @uri = "#{endpoint.scheme}://#{encode_host(endpoint.host, endpoint.port)}#{@path}"
-
+                # Don't hold references to vars we don't require anymore
+                self.finally {
+                    @host = @port = nil
+                    @cookiejar = nil
+                    @middleware = nil
+                }
                 @error = proc { |reason| reject(reason) }
             end
 
@@ -91,7 +102,7 @@ module UV
                 head, body = build_request, @options[:body]
                 @transport = transport
 
-                @endpoint.middleware.each do |m|
+                @middleware.each do |m|
                     begin
                         head, body = m.request(self, head, body) if m.respond_to?(:request)
                     rescue => e
@@ -132,7 +143,7 @@ module UV
                     transport.write(request_header).catch @error
 
                     # Send file
-                    fileRef = @endpoint.reactor.file file, File::RDONLY do
+                    fileRef = @reactor.file file, File::RDONLY do
                         # File is open and available for reading
                         pSend = fileRef.send_file(transport, using: :raw, wait: :promise)
                         pSend.catch @error
@@ -180,7 +191,7 @@ module UV
                 head = @options[:headers] ? munge_header_keys(@options[:headers]) : {}
 
                 # Set the cookie header if provided
-                @cookies = @endpoint.cookiejar.get(@uri)
+                @cookies = @cookiejar.get(@uri)
                 if cookie = head[COOKIE]
                     @cookies << encode_cookie(cookie)
                 end
@@ -192,7 +203,7 @@ module UV
                 end
 
                 # Set the Host header if it hasn't been specified already
-                head['host'] ||= encode_host(@endpoint.host, @endpoint.port)
+                head['host'] ||= encode_host(@host, @port)
 
                 # Set the User-Agent if it hasn't been specified
                 if !head.key?('user-agent')
