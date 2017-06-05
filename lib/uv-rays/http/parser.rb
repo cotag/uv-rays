@@ -1,8 +1,10 @@
 # frozen_string_literal: true
 
+require 'active_support/hash_with_indifferent_access'
+
 module UV
     module Http
-        class Headers < Hash
+        class Headers < ::ActiveSupport::HashWithIndifferentAccess
             # The HTTP version returned
             attr_accessor :http_version
 
@@ -79,27 +81,29 @@ module UV
             end
 
             def on_header_field(parser, data)
-                @header = data.to_sym
+                @header = data
             end
 
             def on_header_value(parser, data)
                 case @header
-                when :"Set-Cookie"
+                when 'Set-Cookie'
                     @request.set_cookie(data)
 
-                when :Connection
+                when 'Connection'
                     # Overwrite the default
                     @close_connection = data == 'close'
 
-                when :"Transfer-Encoding"
+                when 'Transfer-Encoding'
                     # If chunked we'll buffer streaming data for notification
                     @chunked = data == 'chunked'
 
                 end
 
+                # Duplicate headers we'll place into an array
                 current = @headers[@header]
                 if current
-                    @headers[@header] = "#{current}, #{data}"
+                    arr = @headers[@header] = Array(current)
+                    arr << data
                 else
                     @headers[@header] = data
                 end
@@ -146,7 +150,7 @@ module UV
             def eof
                 return if @request.nil?
 
-                if @headers_complete && (@headers[:'Content-Length'].nil? || @request.method == :head)
+                if @headers_complete && (@headers['Content-Length'].nil? || @request.method == :head)
                     on_message_complete(nil)
                 else
                     # Reject if this is a partial response

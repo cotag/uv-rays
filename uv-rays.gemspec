@@ -21,6 +21,7 @@ Gem::Specification.new do |gem|
     gem.add_runtime_dependency     'parse-cron', '~> 0.1'  # CRON calculations
     gem.add_runtime_dependency     'addressable', '~> 2.4' # URI parser
     gem.add_runtime_dependency     'http-parser', '~> 1.2' # HTTP tokeniser
+    gem.add_runtime_dependency     'activesupport', '>= 4', '< 6'
 
     # HTTP authentication helpers
     gem.add_runtime_dependency     'rubyntlm', '~> 0.6'
