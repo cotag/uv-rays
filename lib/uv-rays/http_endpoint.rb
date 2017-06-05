@@ -94,7 +94,7 @@ module UV
             @tls_options = options[:tls_options] || {}
             @inactivity_timeout = options[:inactivity_timeout] || 10000
 
-            uri = URI.parse host
+            uri = host.is_a?(URI) ? host : URI.parse(host)
             @port = uri.port
             @host = uri.host
             @scheme = uri.scheme
