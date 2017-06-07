@@ -30,6 +30,7 @@ Gem::Specification.new do |gem|
     gem.add_development_dependency 'rspec', '~> 3.5'
     gem.add_development_dependency 'rake', '~> 11.2'
     gem.add_development_dependency 'yard', '~> 0.9'
+    gem.add_development_dependency 'httpi', '~> 2.4.2'
 
     gem.files = Dir["{lib}/**/*"] + %w(Rakefile uv-rays.gemspec README.md LICENSE)
     gem.test_files = Dir["spec/**/*"]

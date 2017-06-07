@@ -3,7 +3,7 @@ require 'httpi'
 module HTTPI; end
 module HTTPI::Adapter; end
 class HTTPI::Adapter::Libuv < HTTPI::Adapter::Base
-    register :my_adapter, deps: %w(uv-rays)
+    register :libuv, deps: %w(uv-rays)
 
     def initialize(request)
         @request = request
@@ -45,6 +45,6 @@ class HTTPI::Adapter::Libuv < HTTPI::Adapter::Base
 
         # Use co-routines to make non-blocking requests
         response = co @client.request(method, req)
-        Response.new(response.status, response, response.body)
+        ::HTTPI::Response.new(response.status, response, response.body)
     end
 end

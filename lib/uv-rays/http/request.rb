@@ -31,17 +31,18 @@ module UV
             def initialize(endpoint, options)
                 super(endpoint.thread, endpoint.thread.defer)
 
-                path = options[:path]
-                if path.is_a?(::URI)
-                    @path = uri.to_s.split(uri.host)[1] || '/'
-                else
-                    @path = path
-                end
-                @method = options[:method]
-
                 @host = endpoint.host
                 @port = endpoint.port
                 @encoded_host = endpoint.encoded_host
+
+                path = options[:path]
+                if path.is_a?(::URI)
+                    @path = path.to_s.split(@encoded_host)[1] || '/'
+                else
+                    @path = path
+                end
+
+                @method = options[:method]
                 @cookiejar = endpoint.cookiejar
                 @middleware = endpoint.middleware
                 @uri = "#{endpoint.scheme}://#{@encoded_host}#{@path}"

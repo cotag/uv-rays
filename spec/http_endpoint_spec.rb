@@ -218,6 +218,30 @@ describe UV::HttpEndpoint do
 			expect(@response.body).to eq('y')
 		end
 
+		it "should send a request then receive a response using httpi" do
+			require 'httpi/adapter/libuv'
+			HTTPI.adapter = :libuv
+
+			@reactor.run { |reactor|
+				tcp = UV.start_server '127.0.0.1', 3250, HttpServer
+
+				begin
+					request = HTTPI::Request.new("http://127.0.0.1:3250/whatwhat")
+					@response = HTTPI.get(request)
+				rescue => e
+					@general_failure << e
+				ensure
+					tcp.close
+					@reactor.stop
+				end
+			}
+
+			expect(@general_failure).to eq([])
+			expect(@response.headers["Content-type"]).to eq('text/html')
+			expect(@response.code).to eq(200)
+			expect(@response.raw_body).to eq('y')
+		end
+
 		it 'should be garbage collected', mri_only: true do
 			require 'weakref'
 			require 'objspace'
