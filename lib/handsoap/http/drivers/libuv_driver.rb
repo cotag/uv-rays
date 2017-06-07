@@ -1,5 +1,7 @@
 # frozen_string_literal: true, encoding: ASCII-8BIT
 
+require 'handsoap'
+
 module Handsoap
     module Http
         module Drivers
@@ -34,5 +36,7 @@ module Handsoap
                 end
             end
         end
+
+        @@drivers[:libuv] = ::Handsoap::Http::Drivers::LibuvDriver
     end
 end
