@@ -108,9 +108,9 @@ module UV
         end
 
 
-        attr_reader :inactivity_timeout, :thread
+        attr_accessor :inactivity_timeout
         attr_reader :tls_options, :port, :host, :tls, :scheme, :encoded_host
-        attr_reader :cookiejar, :middleware
+        attr_reader :cookiejar, :middleware, :thread
 
 
         def get(options = {});     request(:get,     options); end
