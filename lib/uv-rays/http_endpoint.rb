@@ -94,9 +94,13 @@ module UV
             @tls_options = options[:tls_options] || {}
             @inactivity_timeout = options[:inactivity_timeout] || 10000
 
-            uri = host.is_a?(URI) ? host : URI.parse(host)
+            uri = host.is_a?(::URI) ? host : ::URI.parse(host)
             @port = uri.port
             @host = uri.host
+
+            default_port = uri.port == uri.default_port
+            @encoded_host = default_port ? @host : "#{@host}:#{@port}"
+
             @scheme = uri.scheme
             @tls = @scheme == 'https'
             @cookiejar = CookieJar.new
@@ -105,7 +109,7 @@ module UV
 
 
         attr_reader :inactivity_timeout, :thread
-        attr_reader :tls_options, :port, :host, :tls, :scheme
+        attr_reader :tls_options, :port, :host, :tls, :scheme, :encoded_host
         attr_reader :cookiejar, :middleware
 
 
@@ -120,7 +124,7 @@ module UV
 
         def request(method, options = {})
             options = @options.merge(options)
-            options[:method] = method
+            options[:method] = method.to_sym
 
             # Setup the request with callbacks
             request = Http::Request.new(self, options)

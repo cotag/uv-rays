@@ -31,14 +31,20 @@ module UV
             def initialize(endpoint, options)
                 super(endpoint.thread, endpoint.thread.defer)
 
-                @path = options[:path]
+                path = options[:path]
+                if path.is_a?(::URI)
+                    @path = uri.to_s.split(uri.host)[1] || '/'
+                else
+                    @path = path
+                end
                 @method = options[:method]
 
                 @host = endpoint.host
                 @port = endpoint.port
+                @encoded_host = endpoint.encoded_host
                 @cookiejar = endpoint.cookiejar
                 @middleware = endpoint.middleware
-                @uri = "#{endpoint.scheme}://#{encode_host(@host, @port)}#{@path}"
+                @uri = "#{endpoint.scheme}://#{@encoded_host}#{@path}"
                 endpoint = nil
 
                 @options = options
@@ -179,14 +185,6 @@ module UV
             protected
 
 
-            def encode_host(host, port)
-                if port.nil? || port == 80 || port == 443
-                    host
-                else
-                    host + ":#{port}"
-                end
-            end
-
             def build_request
                 head = @options[:headers] ? munge_header_keys(@options[:headers]) : {}
 
@@ -203,7 +201,7 @@ module UV
                 end
 
                 # Set the Host header if it hasn't been specified already
-                head['host'] ||= encode_host(@host, @port)
+                head['host'] ||= @encoded_host
 
                 # Set the User-Agent if it hasn't been specified
                 if !head.key?('user-agent')
