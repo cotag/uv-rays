@@ -13,7 +13,7 @@ class HTTPI::Adapter::Libuv < HTTPI::Adapter::Base
     attr_reader :client
 
     def request(method)
-        @client.inactivity_timeout = @request.read_timeout if @request.read_timeout && @request.read_timeout > 0
+        @client.inactivity_timeout = (@request.read_timeout * 1000).to_i if @request.read_timeout && @request.read_timeout > 0
 
         req = {
             path: @request.url,
