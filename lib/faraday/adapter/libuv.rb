@@ -31,7 +31,7 @@ module Faraday
         end
 
         if (req = env[:request])
-          opts[:inactivity_timeout] = req[:timeout] if req[:timeout]
+          opts[:inactivity_timeout] = (req[:timeout] * 1000) if req[:timeout]
         end
 
         error = nil
