@@ -6,7 +6,7 @@ rvm:
   - jruby-9.1.10.0
   - jruby-head
   - rubinius
-  - rubinius-3.78
+  - rubinius-3.76
 branches:
   only:
     - master
