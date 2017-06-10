@@ -50,3 +50,14 @@ reactor {
 }
 
 ```
+
+# Integrations
+
+UV-Rays works with many existing GEMs by integrating into common HTTP abstraction libraries
+
+* [Faraday](https://github.com/lostisland/faraday)
+* [HTTPI](https://github.com/savonrb/httpi)
+* [Handsoap](https://github.com/unwire/handsoap)
+
+
+
