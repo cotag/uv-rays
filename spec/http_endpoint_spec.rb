@@ -186,7 +186,7 @@ describe UV::HttpEndpoint do
 			@reactor.stop
 			@general_failure << "test timed out"
 		end
-		@timeout.start(5000)
+		@timeout.start(10000)
 
 		@request_failure = proc { |err|
 			@general_failure << err
@@ -579,4 +579,58 @@ describe UV::HttpEndpoint do
 			expect(@error2).to eq(:connection_failure)
 		end
 	end
+
+=begin
+	describe 'proxy support' do
+		it "should work with a HTTP proxy server" do
+			@reactor.run { |reactor|
+				server = UV::HttpEndpoint.new 'http://www.whatsmyip.org', {
+					#inactivity_timeout: 1000,
+					proxy: {
+						host: '212.47.252.49',
+						port: 3128
+					}
+				}
+
+				@response = nil
+
+				request = server.get(:path => '/', headers: {accept: 'text/html'})
+				request.then(proc { |response|
+					@response = response
+					@reactor.stop
+				}, proc { |error|
+					@error = error
+				})
+			}
+
+			expect(@general_failure).to eq([])
+			expect(@response.status).to eq(200)
+		end
+
+		it "should work with a HTTPS proxy server" do
+			@reactor.run { |reactor|
+				server = UV::HttpEndpoint.new 'https://www.google.com.au', {
+					#inactivity_timeout: 1000,
+					proxy: {
+						host: '212.47.252.49',
+						port: 3128
+					}
+				}
+
+				@response = nil
+
+				request = server.get(:path => '/', headers: {accept: 'text/html'})
+				request.then(proc { |response|
+					@response = response
+					@reactor.stop
+				}, proc { |error|
+					@error = error
+				})
+			}
+
+			expect(@general_failure).to eq([])
+			expect(@response.status).to eq(200)
+		end
+	end
+=end
 end

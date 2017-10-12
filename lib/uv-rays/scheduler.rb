@@ -259,7 +259,7 @@ module UV
         # @param schedule [String] a standard CRON job line.
         # @param callback [Proc] a block or method to execute when the event triggers
         # @return [::UV::Repeat]
-        def cron(schedule, callback = nil, timezone: nil , &block)
+        def cron(schedule, callback = nil, timezone: nil, &block)
             callback ||= block
             ms = Scheduler.parse_cron(schedule, timezone: timezone)
             event = Repeat.new(self, ms)

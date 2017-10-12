@@ -33,33 +33,76 @@ module UV
         end
     end # CookieJar
 
+    # HTTPS Proxy - connect to proxy
+    # CONNECT #{target_host}:#{target_port} HTTP/1.0\r\n"
+    # Proxy-Authorization: Basic #{encoded_credentials}\r\n
+    # \r\n
+    # Parse response =~ %r{\AHTTP/1\.[01] 200 .*\r\n\r\n}m
+    # use_tls
+    # send requests as usual
+
+    # HTTP Proxy - connect to proxy
+    # GET #{url_with_host} HTTP/1.1\r\n"
+    # Proxy-Authorization: Basic #{encoded_credentials}\r\n
+    # \r\n
+
     class HttpEndpoint
         class Connection < OutboundConnection
-            def initialize(host, port, tls, client)
+            def initialize(host, port, tls, proxy, client)
+                @target_host = host
                 @client = client
                 @request = nil
-                super(host, port)
 
-                if tls
-                    opts = {host_name: host}.merge(client.tls_options)
-                    use_tls(opts)
+                if proxy
+                    super(proxy[:host], proxy[:port])
+                    connect_send_handshake(host, port, proxy) if tls
+                else
+                    super(host, port)
+                    start_tls if tls
                 end
+            end
+
+            def start_tls
+                opts = {host_name: @target_host}.merge(@client.tls_options)
+                use_tls(opts)
+            end
+
+            def connect_send_handshake(target_host, target_port, proxy)
+                @negotiating = true
+                header = String.new("CONNECT #{target_host}:#{target_port} HTTP/1.0\r\n")
+                if proxy[:username] || proxy[:password]
+                    encoded_credentials = Base64.strict_encode64([proxy[:username], proxy[:password]].join(":"))
+                    header << "Proxy-Authorization: Basic #{encoded_credentials}\r\n"
+                end
+                header << "\r\n"
+                write(header)
             end
 
             attr_accessor :request, :reason
 
-            def on_read(data, *args) # user to define
-                @client.data_received(data)
+            def on_read(data, *args)
+                if @negotiating
+                    @negotiating = false
+                    if data =~ %r{\AHTTP/1\.[01] 200 .*\r\n\r\n}m
+                        start_tls
+                        @client.connection_ready
+                    else
+                        @reason = "Unexpected response from proxy: #{data}"
+                        close_connection
+                    end
+                else
+                    @client.data_received(data)
+                end
             end
 
             def post_init(*args)
             end
 
-            def on_connect(transport) # user to define
-                @client.connection_ready
+            def on_connect(transport)
+                @client.connection_ready unless @negotiating
             end
 
-            def on_close # user to define
+            def on_close
                 @client.connection_closed(@request, @reason)
             ensure
                 @request = nil
@@ -100,6 +143,7 @@ module UV
 
             default_port = uri.port == uri.default_port
             @encoded_host = default_port ? @host : "#{@host}:#{@port}"
+            @proxy = @options[:proxy]
 
             @scheme = uri.scheme
             @tls = @scheme == 'https'
@@ -110,7 +154,7 @@ module UV
 
         attr_accessor :inactivity_timeout
         attr_reader :tls_options, :port, :host, :tls, :scheme, :encoded_host
-        attr_reader :cookiejar, :middleware, :thread
+        attr_reader :cookiejar, :middleware, :thread, :proxy
 
 
         def get(options = {});     request(:get,     options); end
@@ -191,6 +235,10 @@ module UV
             close_connection
         end
 
+        def http_proxy?
+            @proxy && !@tls
+        end
+
 
         private
 
@@ -211,7 +259,7 @@ module UV
 
         def new_connection
             if @queue.length > 0 && @connection.nil?
-                @connection = Connection.new(@host, @port, @tls, self)
+                @connection = Connection.new(@host, @port, @tls, @proxy, self)
                 start_timer
             end
             @connection

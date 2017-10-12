@@ -44,8 +44,7 @@ module UV
 
             def encode_request(method, uri, query)
                 query = encode_query(uri, query)
-
-                HTTP_REQUEST_HEADER % [method.to_s.upcase, query]
+                String.new(HTTP_REQUEST_HEADER % [method.to_s.upcase, query])
             end
 
             def encode_query(uri, query)

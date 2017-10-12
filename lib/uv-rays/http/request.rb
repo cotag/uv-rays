@@ -33,6 +33,7 @@ module UV
 
                 @host = endpoint.host
                 @port = endpoint.port
+                @http_proxy = endpoint.http_proxy? ? endpoint.proxy : nil
                 @encoded_host = endpoint.encoded_host
 
                 path = options[:path]
@@ -46,6 +47,7 @@ module UV
                 @cookiejar = endpoint.cookiejar
                 @middleware = endpoint.middleware
                 @uri = "#{endpoint.scheme}://#{@encoded_host}#{@path}"
+                @path = @uri if @http_proxy
                 endpoint = nil
 
                 @options = options
@@ -139,7 +141,10 @@ module UV
                     head['content-type'] = 'application/x-www-form-urlencoded'
                 end
 
-                request_header = encode_request(method, path, query)
+                request_header = encode_request(method, @path, query)
+                if @http_proxy && (@http_proxy[:username] || @http_proxy[:password])
+                    request_header << encode_auth('Proxy-Authorization', [@http_proxy[:username], @http_proxy[:password]])
+                end
                 request_header << encode_headers(head)
                 request_header << CRLF
 
