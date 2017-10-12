@@ -21,6 +21,15 @@ class HTTPI::Adapter::Libuv < HTTPI::Adapter::Base
             body: @request.body
         }
 
+        if proxy = @request.proxy
+            req[:proxy] = {
+                host: proxy.host,
+                port: proxy.port,
+                username: proxy.user,
+                password: proxy.password
+            }
+        end
+
         # Apply authentication settings
         auth = @request.auth
         type = auth.type

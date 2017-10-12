@@ -34,6 +34,15 @@ module Faraday
           opts[:inactivity_timeout] = (req[:timeout] * 1000) if req[:timeout]
         end
 
+        if proxy = env[:request][:proxy]
+          opts[:proxy] = {
+            host: proxy[:uri].host,
+            port: proxy[:uri].port,
+            username: proxy[:user],
+            password: proxy[:password]
+          }
+        end
+
         error = nil
         thread = reactor
         if thread.running?
