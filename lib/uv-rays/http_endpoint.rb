@@ -55,7 +55,12 @@ module UV
 
                 if proxy
                     super(proxy[:host], proxy[:port])
-                    connect_send_handshake(host, port, proxy) if tls
+                    if tls
+                        @negotiating = true
+                        @proxy = proxy
+                        @connect_host = host
+                        @connect_port = port
+                    end
                 else
                     super(host, port)
                     start_tls if tls
@@ -68,7 +73,6 @@ module UV
             end
 
             def connect_send_handshake(target_host, target_port, proxy)
-                @negotiating = true
                 header = String.new("CONNECT #{target_host}:#{target_port} HTTP/1.0\r\n")
                 if proxy[:username] || proxy[:password]
                     encoded_credentials = Base64.strict_encode64([proxy[:username], proxy[:password]].join(":"))
@@ -99,7 +103,11 @@ module UV
             end
 
             def on_connect(transport)
-                @client.connection_ready unless @negotiating
+                if @negotiating
+                    connect_send_handshake(@connect_host, @connect_port, @proxy)
+                else
+                    @client.connection_ready
+                end
             end
 
             def on_close
