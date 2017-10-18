@@ -77,7 +77,7 @@ module UV
         # Updates the scheduled time
         def update(time)
             @last_scheduled = @reactor.now
-            
+
             parsed_time = Scheduler.parse_in(time, :quiet)
             if parsed_time.nil?
                 # Parse at will throw an error if time is invalid
@@ -330,7 +330,7 @@ module UV
         # First time schedule we want to bind to the promise
         def schedule(event)
             reschedule(event)
-            
+
             event.finally do
                 unschedule event
             end
@@ -340,7 +340,7 @@ module UV
         # accurate by checking the head of the schedule
         def check_timer
             @reactor.update_time
-            
+
             existing = @next
             schedule = @scheduled.first
             @next = schedule.nil? ? nil : schedule.next_scheduled

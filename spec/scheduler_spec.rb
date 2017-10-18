@@ -95,7 +95,7 @@ describe UV::Scheduler do
                 @reactor.stop
             end
 
-            @scheduled, @schedules = @scheduler.instance_eval { 
+            @scheduled, @schedules = @scheduler.instance_eval {
                 [@scheduled, @schedules]
             }
 
