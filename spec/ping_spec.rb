@@ -39,7 +39,7 @@ describe UV::Ping do
         expect(pingger.duration).to be > 0
     end
 
-    it "should ping IPv6" do
+    it "should ping IPv6", travis_skip: true do
         pingger = ::UV::Ping.new('::1')
         result = nil
 
