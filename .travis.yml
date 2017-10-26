@@ -10,9 +10,13 @@ rvm:
 branches:
   only:
     - master
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install iputils-ping
 matrix:
   allow_failures:
     - rvm: jruby-head
     - rvm: ruby-head
     - rvm: rubinius
-sudo: false
+sudo: required
+dist: trusty
