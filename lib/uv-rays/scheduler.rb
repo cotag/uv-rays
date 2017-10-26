@@ -1,5 +1,10 @@
 # frozen_string_literal: true
 
+require 'set'               # ruby std lib
+require 'bisect'            # insert into a sorted array
+require 'tzinfo'            # timezone information
+require 'uv-rays/scheduler/time'
+
 module UV
 
     class ScheduledEvent < ::Libuv::Q::DeferredPromise
@@ -44,8 +49,6 @@ module UV
         def to_time(internal_time)
             if internal_time
                 ((internal_time + @scheduler.time_diff) / 1000).to_i
-            else
-                internal_time
             end
         end
 
@@ -395,15 +398,6 @@ module UV
                     @timer.start(@next)
                 end
             end
-        end
-    end
-end
-
-module Libuv
-    class Reactor
-        def scheduler
-            @scheduler ||= UV::Scheduler.new(@reactor)
-            @scheduler
         end
     end
 end

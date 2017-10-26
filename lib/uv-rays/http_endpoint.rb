@@ -1,6 +1,12 @@
 # frozen_string_literal: true
 
 require 'uri'
+require 'cookiejar'         # Manages cookies
+require 'http-parser'       # Parses HTTP request / responses
+require 'addressable/uri'   # URI parser
+require 'uv-rays/http/encoding'
+require 'uv-rays/http/request'
+require 'uv-rays/http/parser'
 
 module UV
     class CookieJar

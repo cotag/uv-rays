@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'ipaddress' # IP Address parser
+
 module UV
     def self.try_connect(tcp, handler, server, port)
         if IPAddress.valid? server

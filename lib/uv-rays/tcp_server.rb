@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'ipaddress' # IP Address parser
+
 module UV
     class TcpServer < ::Libuv::TCP
         def initialize(reactor, server, port, klass, *args)

@@ -2,35 +2,27 @@
 
 require 'libuv'
 
-
-# In-memory event scheduling
-require 'set'               # ruby std lib
-require 'bisect'            # insert into a sorted array
-require 'tzinfo'            # timezone information
-require 'uv-rays/scheduler/time'
-require 'uv-rays/scheduler'
-
-# Intelligent stream buffering
-require 'uv-rays/buffered_tokenizer'
-require 'uv-rays/abstract_tokenizer'
-
-# TCP Connections
-require 'ipaddress'         # IP Address parser
-require 'uv-rays/tcp_server'
-require 'uv-rays/connection'
-
-# HTTP related methods
-require 'cookiejar'         # Manages cookies
-require 'http-parser'       # Parses HTTP request / responses
-require 'addressable/uri'   # URI parser
-require 'uv-rays/http/encoding'
-require 'uv-rays/http/request'
-require 'uv-rays/http/parser'
-require 'uv-rays/http_endpoint'
-
-
-
 module UV
+    autoload :Ping, 'uv-rays/ping'
+
+    # In-memory event scheduling
+    autoload :Scheduler, 'uv-rays/scheduler'
+
+    # Intelligent stream buffering
+    autoload :BufferedTokenizer, 'uv-rays/buffered_tokenizer'
+    autoload :AbstractTokenizer, 'uv-rays/abstract_tokenizer'
+
+    # TCP Connections
+    autoload :TcpServer,          'uv-rays/tcp_server'
+    autoload :Connection,         'uv-rays/connection'
+    autoload :TcpConnection,      'uv-rays/connection'
+    autoload :InboundConnection,  'uv-rays/connection'
+    autoload :OutboundConnection, 'uv-rays/connection'
+    autoload :DatagramConnection, 'uv-rays/connection'
+
+    # HTTP related methods
+    autoload :HttpEndpoint, 'uv-rays/http_endpoint'
+
 
     # @private
     def self.klass_from_handler(klass, handler = nil, *args)
@@ -89,5 +81,14 @@ module UV
         c = klass.new server, port
         c.post_init *args
         c
+    end
+end
+
+module Libuv
+    class Reactor
+        def scheduler
+            @scheduler ||= ::UV::Scheduler.new(@reactor)
+            @scheduler
+        end
     end
 end
