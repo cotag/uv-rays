@@ -3,6 +3,8 @@
 require 'ipaddress' # IP Address parser
 require 'ipaddr'
 
+# Based on code from https://github.com/chernesk/net-ping/blob/master/lib/net/ping/external.rb
+
 module UV; end
 class UV::Ping
 
@@ -13,26 +15,26 @@ class UV::Ping
         @timeout = timeout
     end
 
-    attr_reader :host, :count, :interval, :timeout, :exception, :warning, :duration, :pingable
+    attr_reader :host, :ip, :count, :interval, :timeout, :exception, :warning, :duration, :pingable
 
     def ping
-        ip = if IPAddress.valid?(@host)
+        @ip = if IPAddress.valid?(@host)
             @host
         else
             nslookup(@host)
         end
 
-        if ip.nil?
+        if @ip.nil?
             @pingable = false
             @exception = 'DNS lookup failed for both IPv4 and IPv6'
             return false
         end
 
-        ipaddr = IPAddr.new ip
+        ipaddr = IPAddr.new @ip
         if ipaddr.ipv4?
-            ping4(@host, @count, @interval, @timeout)
+            ping4(@ip, @count, @interval, @timeout)
         else
-            ping6(@host, @count, @interval, @timeout)
+            ping6(@ip, @count, @interval, @timeout)
         end
     end
 
