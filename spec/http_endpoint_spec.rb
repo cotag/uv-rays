@@ -257,7 +257,7 @@ describe UV::HttpEndpoint do
 					objs = WeakRef.new(server)
 
 					request = server.get(:path => '/whatwhat')
-					request.catch(@request_failure)
+					request.catch(&@request_failure)
 					request.finally {
 						tcp.close
 						@timeout.stop

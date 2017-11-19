@@ -63,7 +63,7 @@ class HTTPI::Adapter::Libuv < HTTPI::Adapter::Base
         end
 
         # Use co-routines to make non-blocking requests
-        response = co @client.request(method, req)
+        response = @client.request(method, req).value
         ::HTTPI::Response.new(response.status, response, response.body)
     end
 end

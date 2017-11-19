@@ -182,7 +182,6 @@ module UV
             @scheduled = []
             @next = nil     # Next schedule time
             @timer = nil    # Reference to the timer
-            @timer_callback = method(:on_timer)
 
             # Not really required when used correctly
             @critical = Mutex.new
@@ -211,14 +210,10 @@ module UV
         # @param time [String] a human readable string representing the time period. 3w2d4h1m2s for example.
         # @param callback [Proc] a block or method to execute when the event triggers
         # @return [::UV::Repeat]
-        def every(time, callback = nil, &block)
-            callback ||= block
+        def every(time)
             ms = Scheduler.parse_in(time)
             event = Repeat.new(self, ms)
-
-            if callback.respond_to? :call
-                event.progress callback
-            end
+            event.progress &Proc.new if block_given?
             schedule(event)
             event
         end
@@ -228,14 +223,10 @@ module UV
         # @param time [String] a human readable string representing the time period. 3w2d4h1m2s for example.
         # @param callback [Proc] a block or method to execute when the event triggers
         # @return [::UV::OneShot]
-        def in(time, callback = nil, &block)
-            callback ||= block
+        def in(time)
             ms = @reactor.now + Scheduler.parse_in(time)
             event = OneShot.new(self, ms)
-
-            if callback.respond_to? :call
-                event.progress callback
-            end
+            event.progress &Proc.new if block_given?
             schedule(event)
             event
         end
@@ -245,14 +236,10 @@ module UV
         # @param time [String, Time] a representation of a date and time that can be parsed
         # @param callback [Proc] a block or method to execute when the event triggers
         # @return [::UV::OneShot]
-        def at(time, callback = nil, &block)
-            callback ||= block
+        def at(time)
             ms = Scheduler.parse_at(time) - @time_diff
             event = OneShot.new(self, ms)
-
-            if callback.respond_to? :call
-                event.progress callback
-            end
+            event.progress &Proc.new if block_given?
             schedule(event)
             event
         end
@@ -262,14 +249,10 @@ module UV
         # @param schedule [String] a standard CRON job line.
         # @param callback [Proc] a block or method to execute when the event triggers
         # @return [::UV::Repeat]
-        def cron(schedule, callback = nil, timezone: nil, &block)
-            callback ||= block
+        def cron(schedule, timezone: nil)
             ms = Scheduler.parse_cron(schedule, timezone: timezone)
             event = Repeat.new(self, ms)
-
-            if callback.respond_to? :call
-                event.progress callback
-            end
+            event.progress &Proc.new if block_given?
             schedule(event)
             event
         end
@@ -391,7 +374,7 @@ module UV
 
         # Provide some assurances on timer failure
         def new_timer
-            @timer = @reactor.timer @timer_callback
+            @timer = @reactor.timer { on_timer }
             @timer.finally do
                 new_timer
                 unless @next.nil?

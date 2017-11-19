@@ -74,11 +74,11 @@ module Faraday
 
     def perform_request(env, opts)
       conn = ::UV::HttpEndpoint.new(env[:url].to_s, opts.merge!(@connection_options))
-      resp = co conn.request(env[:method].to_s.downcase.to_sym,
+      resp = conn.request(env[:method].to_s.downcase.to_sym,
         headers: env[:request_headers],
         path: "/#{env[:url].to_s.split('/', 4)[-1]}",
         keepalive: false,
-        body: read_body(env))
+        body: read_body(env)).value
 
       save_response(env, resp.status.to_i, resp.body, resp) #, resp.reason_phrase)
       nil

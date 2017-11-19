@@ -150,22 +150,22 @@ module UV
 
                 if body
                     request_header << body
-                    transport.write(request_header).catch @error
+                    transport.write(request_header).catch &@error
                 elsif file
-                    transport.write(request_header).catch @error
+                    transport.write(request_header).catch &@error
 
                     # Send file
                     fileRef = @reactor.file file, File::RDONLY do
                         # File is open and available for reading
                         pSend = fileRef.send_file(transport, using: :raw, wait: :promise)
-                        pSend.catch @error
+                        pSend.catch &@error
                         pSend.finally do
                             fileRef.close
                         end
                     end
-                    fileRef.catch @error
+                    fileRef.catch &@error
                 else
-                    transport.write(request_header).catch @error
+                    transport.write(request_header).catch &@error
                 end
             end
 
@@ -177,9 +177,7 @@ module UV
                 @headers_callback.call(head) if @headers_callback
             end
 
-
-
-            def on_headers(callback, &blk)
+            def on_headers(&callback)
                 @headers_callback = callback
             end
 

@@ -5,8 +5,8 @@ require 'ipaddress' # IP Address parser
 module UV
     def self.try_connect(tcp, handler, server, port)
         if IPAddress.valid? server
-            tcp.finally handler.method(:on_close)
-            tcp.progress handler.method(:on_read)
+            tcp.finally { handler.on_close }
+            tcp.progress { |*data| handler.on_read(*data) }
             tcp.connect server, port do
                 tcp.enable_nodelay
                 tcp.start_tls(handler.using_tls) if handler.using_tls
@@ -109,8 +109,8 @@ module UV
 
             @reactor = tcp.reactor
             @transport = tcp
-            @transport.finally method(:on_close)
-            @transport.progress method(:on_read)
+            @transport.finally { on_close }
+            @transport.progress { |*data| on_read(*data) }
         end
 
         def use_tls(args = {})
@@ -164,7 +164,7 @@ module UV
 
             @reactor = reactor
             @transport = @reactor.udp
-            @transport.progress method(:on_read)
+            @transport.progress { |*args| on_read(*args) }
 
             if not server.nil?
                 server = '127.0.0.1' if server == 'localhost'

@@ -18,7 +18,7 @@ module UV
                 server = '127.0.0.1' if server == 'localhost'
                 if IPAddress.valid? server
                     @server = server
-                    bind(server, port, method(:new_connection))
+                    bind(server, port) { |client| new_connection(client) }
                     listen(1024)
                 else
                     raise ArgumentError, "Invalid server address #{server}"
