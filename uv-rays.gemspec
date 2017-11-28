@@ -13,7 +13,7 @@ Gem::Specification.new do |gem|
     gem.required_ruby_version = '>= 2.0.0'
     gem.require_paths = ["lib"]
 
-    gem.add_runtime_dependency     'libuv', '~> 3.0'       # Evented IO
+    gem.add_runtime_dependency     'libuv',  '>= 3.0', '< 5.0' # Evented IO
     gem.add_runtime_dependency     'bisect', '~> 0.1'      # Sorted insertion
     gem.add_runtime_dependency     'tzinfo', '~> 1.2'      # Ruby timezones info
     gem.add_runtime_dependency     'cookiejar', '~> 0.3'   # HTTP cookies
