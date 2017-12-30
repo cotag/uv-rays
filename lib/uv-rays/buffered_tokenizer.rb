@@ -1,4 +1,5 @@
-# frozen_string_literal: true, encoding: ASCII-8BIT
+# encoding: ASCII-8BIT
+# frozen_string_literal: true
 
 # BufferedTokenizer takes a delimiter upon instantiation.
 # It allows input to be spoon-fed from some outside source which receives

@@ -1,4 +1,5 @@
-# frozen_string_literal: true, encoding: ASCII-8BIT
+# encoding: ASCII-8BIT
+# frozen_string_literal: true
 
 module UV
 
