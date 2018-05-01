@@ -11,11 +11,10 @@ class UV::Ping
     def initialize(host, count: 1, interval: 1, timeout: 5)
         @host = host
         @count = count
-        @interval = interval
         @timeout = timeout
     end
 
-    attr_reader :host, :ip, :count, :interval, :timeout, :exception, :warning, :duration, :pingable
+    attr_reader :host, :ip, :count, :timeout, :exception, :warning, :duration, :pingable
 
     def ping
         @ip = if IPAddress.valid?(@host)
@@ -32,9 +31,9 @@ class UV::Ping
 
         ipaddr = IPAddr.new @ip
         if ipaddr.ipv4?
-            ping4(@ip, @count, @interval, @timeout)
+            ping4(@ip, @count, @timeout)
         else
-            ping6(@ip, @count, @interval, @timeout)
+            ping6(@ip, @count, @timeout)
         end
     end
 
@@ -55,13 +54,13 @@ class UV::Ping
         value
     end
 
-    def ping4(host, count, interval, timeout)
+    def ping4(host, count, timeout)
         pargs = nil
         bool = false
 
         case ::RbConfig::CONFIG['host_os']
         when /linux/i
-            pargs = ['-c', count.to_s, '-W', timeout.to_s, host, '-i', interval.to_s]
+            pargs = ['-c', count.to_s, '-W', timeout.to_s, host]
         when /aix/i
             pargs = ['-c', count.to_s, '-w', timeout.to_s, host]
         when /bsd|osx|mach|darwin/i
@@ -100,7 +99,7 @@ class UV::Ping
                 @exception = err.chomp
             else
                 info.each_line do |line|
-                    if line =~ /(timed out|could not find host|packet loss)/i
+                    if line =~ /(timed out|could not find host|bad address|packet loss)/i
                         @exception = line.chomp
                         break
                     end
@@ -113,13 +112,13 @@ class UV::Ping
         bool
     end
 
-    def ping6(host, count, interval, timeout)
+    def ping6(host, count, timeout)
         pargs = nil
         bool = false
 
         case RbConfig::CONFIG['host_os']
         when /linux/i
-            pargs =['-c', count.to_s, '-W', timeout.to_s, '-i', interval.to_s, host]
+            pargs =['-c', count.to_s, '-W', timeout.to_s, host]
         when /aix/i
             pargs =['-c', count.to_s, '-w', timeout.to_s, host]
         when /bsd|osx|mach|darwin/i
@@ -158,7 +157,7 @@ class UV::Ping
                 @exception = err.chomp
             else
                 info.each_line do |line|
-                    if line =~ /(timed out|could not find host|packet loss)/i
+                    if line =~ /(timed out|could not find host|bad address|packet loss)/i
                         @exception = line.chomp
                         break
                     end
