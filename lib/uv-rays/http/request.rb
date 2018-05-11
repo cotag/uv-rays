@@ -70,6 +70,7 @@ module UV
             def resolve(response, parser = nil)
                 if response.status == 401 && @challenge_retries == 0 && response[:"WWW-Authenticate"]
                     challenge = response[:"WWW-Authenticate"]
+                    challenge = challenge[0] if challenge.is_a?(Array)
 
                     begin
                         if @ntlm_creds && challenge[0..3] == 'NTLM'
