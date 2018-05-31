@@ -73,6 +73,11 @@ module UV
             @input.empty?
         end
 
+        # @return [Integer]
+        def bytesize
+            @input.bytesize
+        end
+
 
         private
 
