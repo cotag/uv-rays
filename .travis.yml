@@ -5,7 +5,8 @@ rvm:
   - ruby-head
   - jruby-9.1.10.0
   - jruby-head
-  - rubinius
+  - rbx-3
+  - rbx-head
 branches:
   only:
     - master
@@ -13,13 +14,9 @@ before_install:
   - sudo apt-get update
   - sudo apt-get install iputils-ping
 matrix:
-  include:
-    - rvm: rubinius-3.76
-      env:
-        - RUBYOPT="-rbundler/deprecate"
   allow_failures:
     - rvm: jruby-head
     - rvm: ruby-head
-    - rvm: rubinius
+    - rvm: rbx-head
 sudo: required
 dist: trusty
