@@ -23,6 +23,12 @@ module UV
     # HTTP related methods
     autoload :HttpEndpoint, 'uv-rays/http_endpoint'
 
+    # Time-based object queue
+    autoload :TimeQueue, 'uv-rays/time_queue'
+
+    # Promises with a max time-to-live
+    autoload :TimeBoundDeferred, 'uv-rays/time_bound_deferred'
+
 
     # @private
     def self.klass_from_handler(klass, handler = nil, *args)
@@ -89,6 +95,14 @@ module Libuv
         def scheduler
             @scheduler ||= ::UV::Scheduler.new(@reactor)
             @scheduler
+        end
+
+        def defer(ttl: nil)
+            if ttl
+                ::UV::TimeBoundDeferred.new(@reactor, ttl: tll)
+            else
+                super()
+            end
         end
     end
 end

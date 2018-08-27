@@ -11,6 +11,7 @@ UV-Rays was designed to eliminate the complexities of high-performance threaded 
 2. Advanced stream tokenization
 3. Scheduled events (in, at, every, cron)
 4. HTTP 1.1 compatible client support
+5. Efficient time-bound deferred and promises
 
 This adds to the features already available from [Libuv](https://github.com/cotag/libuv) on which the gem is based
 
@@ -58,6 +59,3 @@ UV-Rays works with many existing GEMs by integrating into common HTTP abstractio
 * [Faraday](https://github.com/lostisland/faraday)
 * [HTTPI](https://github.com/savonrb/httpi)
 * [Handsoap](https://github.com/unwire/handsoap)
-
-
-
