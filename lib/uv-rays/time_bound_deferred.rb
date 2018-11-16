@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'timeout'
 require 'uv-rays/time_queue'
 
 module UV
@@ -19,7 +20,7 @@ module Libuv
     class Reactor
         def defer_queue
             @defer_queue ||= ::UV::TimeQueue.new(@reactor, 1000) do |defer|
-                defer.reject :timeout
+                defer.reject Timeout::Error.new
             end
         end
     end
