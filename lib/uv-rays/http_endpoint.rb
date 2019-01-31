@@ -163,6 +163,9 @@ module UV
             @tls = @scheme == 'https'
             @cookiejar = CookieJar.new
             @middleware = []
+
+            @closing = false
+            @connecting = false
         end
 
 
@@ -197,7 +200,7 @@ module UV
 
                 response
             }, proc { |err|
-                @parser.eof
+                # @parser.eof
                 close_connection
                 next_request
                 ::Libuv::Q.reject(@thread, err)
@@ -211,6 +214,10 @@ module UV
 
         # Callbacks
         def connection_ready
+            # A connection can be closed while still connecting
+            return if @closing
+
+            @connecting = false
             if @queue.length > 0
                 restart_timer
                 next_request
@@ -220,6 +227,12 @@ module UV
         end
 
         def connection_closed(request, reason)
+            # A connection might close due to a connection failure
+            awaiting_close = @closing
+            awaiting_connect = @connecting
+            @closing = false
+            @connecting = false
+
             # We may have closed a previous connection
             if @parser.request && (request.nil? || request == @parser.request)
                 @connection = nil
@@ -230,6 +243,8 @@ module UV
                 req = @queue.pop
                 req.reject(reason || :connection_failure)
             end
+
+            next_request if awaiting_close || awaiting_connect
         end
 
         def data_received(data)
@@ -258,6 +273,8 @@ module UV
 
 
         def next_request
+            # Don't start a request while transitioning state
+            return if @closing || @connecting
             return if @parser.request || @queue.length == 0
 
             if @connection
@@ -272,7 +289,10 @@ module UV
         end
 
         def new_connection
+            # no new connections while transitioning state
+            return if @closing || @connecting
             if @queue.length > 0 && @connection.nil?
+                @connecting = true
                 @connection = Connection.new(@host, @port, @tls, @proxy, self)
                 start_timer
             end
@@ -280,14 +300,18 @@ module UV
         end
 
         def close_connection
-            return if @connection.nil?
-            @connection.close_connection(@parser.request)
+            # Close connection can be called while connecting
+            return if @closing || @connection.nil?
+            @closing = true
+            @connection.close_connection
             stop_timer
             @connection = nil
         end
 
 
         def start_timer
+            # Only start the timer if there is a connection starting or in place
+            return if @closing || @connection.nil?
             @timer.cancel if @timer
             @timer = @thread.scheduler.in(@inactivity_timeout) do
                 @timer = nil
@@ -303,7 +327,7 @@ module UV
 
         def idle_timeout
             @parser.reason = :timeout if @parser.request
-            @connection.reason = :timeout
+            @connection.reason = :timeout if @connection
             close_connection
         end
     end
