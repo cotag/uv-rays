@@ -193,7 +193,10 @@ module UV
                 if response.keep_alive
                     restart_timer
                 else
-                    close_connection
+                    # We might have already started processing the next request
+                    # at this point. So don't want to disconnect if already
+                    # disconnected.
+                    close_connection unless @connecting
                 end
 
                 next_request
@@ -201,7 +204,7 @@ module UV
                 response
             }, proc { |err|
                 # @parser.eof
-                close_connection
+                close_connection unless @connecting
                 next_request
                 ::Libuv::Q.reject(@thread, err)
             })
@@ -232,12 +235,11 @@ module UV
             awaiting_connect = @connecting
             @closing = false
             @connecting = false
+            @connection = nil
 
             # We may have closed a previous connection
             if @parser.request && (request.nil? || request == @parser.request)
-                @connection = nil
                 stop_timer
-
                 @parser.eof
             elsif request.nil? && @parser.request.nil? && @queue.length > 0
                 req = @queue.pop
@@ -308,7 +310,6 @@ module UV
             @connection = nil
         end
 
-
         def start_timer
             # Only start the timer if there is a connection starting or in place
             return if @closing || @connection.nil?
@@ -326,9 +327,10 @@ module UV
         end
 
         def idle_timeout
-            @parser.reason = :timeout if @parser.request
-            @connection.reason = :timeout if @connection
+            connection = @connection
             close_connection
+            @parser.reason = :timeout if @parser.request
+            connection.reason = :timeout if connection
         end
     end
 end
