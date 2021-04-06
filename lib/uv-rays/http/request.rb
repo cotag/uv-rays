@@ -40,6 +40,8 @@ module UV
                 path = options[:path]
                 if path.is_a?(::URI)
                     @path = path.to_s.split(@encoded_host)[1] || '/'
+                elsif path.include?("://")
+                    @path = path.split(@encoded_host)[1] || '/'
                 else
                     @path = path
                 end
